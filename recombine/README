@@ -26,5 +26,5 @@ use the following: wget http://mwa-metadata01.pawsey.org.au/metadata/fits?obs_id
 <input file list>: location of 32 raw uncombined input files for a single seconds worth of data (separate each with a space)
 <input file list>: a file containing the location of the 32 raw uncombined input files (separate by newline)
 
-To obtain one seconds worth od data you need to get it from the MWA archive. 
+To obtain one seconds worth of data you need to get it from the MWA archive. 
 To download the data refer to the script: voltdownload.py
