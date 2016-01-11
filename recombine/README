@@ -19,12 +19,13 @@ recombine -o <obsid> -t <secondid> -m <meta-data fits> -i <output dir>
 <secondid>: the second which is being processed
 <meta-data fits>: meta-data fits file containing tile flag information and various orther useful 
 information regarding the observation. To obtain the meta-data fits file for a particular observation 
-use the following: wget http://mwa-metadata01.pawsey.org.au/metadata/fits?obs_id=<obsid> -O <obsid>.metafits
+use the following: 
+          wget http://mwa-metadata01.pawsey.org.au/metadata/fits?obs_id=<obsid> -O <obsid>.metafits
 <output dir>: output product directory
 <skip course chan>: 1 will skip the generation of the recombined course channel data
 <skip ICS>: 1 will skip the generation of the incoherent sum
 <input file list>: location of 32 raw uncombined input files for a single seconds worth of data (separate each with a space)
 <input file list>: a file containing the location of the 32 raw uncombined input files (separate by newline)
 
-To obtain one seconds worth od data you need to get it from the MWA archive. 
+To obtain one seconds worth of data you need to get it from the MWA archive. 
 To download the data refer to the script: voltdownload.py
