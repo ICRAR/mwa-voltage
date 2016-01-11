@@ -50,6 +50,7 @@
 #include <inttypes.h>
 #include <limits.h>
 #include <dirent.h>
+#include <malloc.h>
 
 #include <netdb.h>
 #include <sys/types.h>
