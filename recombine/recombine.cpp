@@ -34,6 +34,9 @@
         Email: dave.pallot@icrar.org
 */
 
+
+#define _GNU_SOURCE 1
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string>
@@ -50,8 +53,6 @@
 #include <inttypes.h>
 #include <limits.h>
 #include <dirent.h>
-#include <malloc.h>
-
 #include <netdb.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -212,7 +213,7 @@ int read_from_input(course_chan_input_matrix* matrix, course_chan_input_array* i
          if (buff == NULL)
             return errno;
 
-         memset(buff, 0, sizeof(buff));
+         memset(buff, 0, PACKETS_PER_50MS * PACKET_SIZE_BYTES);
 
          while ((read_in = read(input->m_handles[i].m_handle, (buff + total_read), (PACKETS_PER_50MS * PACKET_SIZE_BYTES)-total_read)) > 0)
             total_read += read_in;
@@ -258,7 +259,7 @@ int read_from_input(course_chan_input_matrix* matrix, course_chan_input_array* i
                if (buff == NULL)
                   return errno;
 
-               memset(buff, 0, sizeof(buff));
+               memset(buff, 0, PACKETS_PER_50MS * PACKET_SIZE_BYTES);
 
                matrix->m_input_matrix[i][j].m_buff = buff;
                matrix->m_contributing_tiles[i][j] = 0;
@@ -328,77 +329,11 @@ void course_channel_swap(const course_chan_freq* in, course_chan_freq* out, unsi
       }
    }
 
-
-   // reorder freq array based on the course channel boundary around 129
+   // keep the order the same on output because we are swapping the
+   // data not the labels;
    for (int i = 0; i < 24; ++i) {
-      if (i < *course_swap_index)
-         out->m_freq[i] = freq[i];
-      else
-         out->m_freq[23-i+(*course_swap_index)] = freq[i];
+      out->m_freq[i] = freq[i];
    }
-
-}
-
-
-inline int zero_copy_buffer_write(int out_fd, char* buffer, size_t buffsize)
-{
-   int	fd[2];
-   if (pipe(fd) != 0)
-      return errno;
-
-   //int pipe_sz = fcntl(fd[1], F_SETPIPE_SZ, 1048576);
-   //printf("pipesize %d\n", pipe_sz);
-
-   size_t offset = 0;
-   size_t toread = buffsize;
-
-   struct iovec iov;
-
-   while (offset < buffsize) {
-      iov.iov_base = buffer + offset;
-      iov.iov_len = toread;
-
-      ssize_t vmsret = vmsplice(fd[1], &iov, 1, SPLICE_F_GIFT);
-      if (vmsret < 0) {
-         close(fd[0]);
-         close(fd[1]);
-         return errno;
-      }
-
-      ssize_t sret = 0;
-      ssize_t totalvm = vmsret;
-      ssize_t totalsplice = 0;
-
-      while (totalvm > 0) {
-         sret = splice(fd[0], NULL, out_fd, NULL, totalvm, SPLICE_F_MOVE|SPLICE_F_NONBLOCK);
-         if (sret <= 0) {
-            if (errno == EAGAIN || errno == EWOULDBLOCK)
-               break;
-            else {
-               close(fd[0]);
-               close(fd[1]);
-               return errno;
-            }
-         }
-
-         totalvm -= sret;
-      }
-
-      assert(totalvm == 0);
-
-      toread -= vmsret;
-      offset += vmsret;
-   }
-
-   //if (fsync(out_fd) < 0)
-   //	return errno;
-
-   assert(toread == 0);
-
-   close(fd[0]);
-   close(fd[1]);
-
-   return 0;
 
 }
 
@@ -418,8 +353,7 @@ int recombine(course_chan_input_array* input, course_chan_output_array* output, 
    uint64_t file_buffer_index[24];
 
    for (int b = 0; b < 24; b++) {
-      //file_buffer[b] = (char*)malloc(64000*256);
-      file_buffer[b] = (char*)memalign(getpagesize(), COURSE_CHAN_BUFF);
+      file_buffer[b] = (char*)valloc(COURSE_CHAN_BUFF);
       if (file_buffer[b] == NULL)
          return errno;
    }
@@ -438,8 +372,7 @@ int recombine(course_chan_input_array* input, course_chan_output_array* output, 
    uint64_t ics_buffer_index = 0;
 
    if (!skipics) {
-      //ics_buffer = (char*)malloc(ICS_BUFF);
-      ics_buffer = (char*)memalign(getpagesize(), ICS_BUFF);
+      ics_buffer = (char*)valloc(ICS_BUFF);
       if (ics_buffer == NULL) {
          retcode = errno;
          goto Error;
