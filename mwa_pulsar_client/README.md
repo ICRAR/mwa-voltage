@@ -1,6 +1,6 @@
 # MWA Pulsar Client
 
-Python API to interface to the MWA Pulsar Database. 
+Python API to the MWA Pulsar Database. 
 
 ## Installation
 
@@ -55,6 +55,7 @@ To input a pulsars name click on HTML tab at the bottom of the page.
 
 ```python
 from mwa_pulsar_client import client
+import requests
 
 SERVER = 'mwa-pawsey-volt01.pawsey.ivec.org'
 AUTH = ('mwapulsar', 'PASS') # Replace with real password
