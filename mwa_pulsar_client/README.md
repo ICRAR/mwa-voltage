@@ -1,6 +1,6 @@
 # MWA Pulsar Client
 
-Python API to interface to the MWA Pulsar Dataabase. 
+Python API to interface to the MWA Pulsar Database. 
 
 ## Installation
 
