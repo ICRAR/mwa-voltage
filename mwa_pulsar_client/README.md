@@ -30,6 +30,34 @@ def observation_create(addr, auth, obsid, pulsar, subband, obstype,
 def pulsar_file_upload(addr, auth, obsid, pulsar, subband, filetype, filepath)
 def pulsar_file_download(addr, auth, filename, output_path)
 ```
+## PSRCAT
+
+The Pulsar database provides an API to PSRCAT.
+
+Access it through the HTTP API:
+
+```python
+def psrcat(addr, auth, pulsar)
+```
+
+Or via the [PSRCAT webform] (https://mwa-pawsey-volt01.pawsey.ivec.org/psrcat/). Note you must be logged in to access the page. The username password is the same as your normal login. 
+
+To input a pulsars name click on HTML tab at the bottom of the page. 
+
+## PSRCAT Example 
+
+```python
+SERVER = 'mwa-pawsey-volt01.pawsey.ivec.org'
+AUTH = ('mwapulsar', 'PASS') # Replace with real password
+
+try:
+    results = client.psrcat(SERVER, AUTH, pulsar = 'J1935+161')
+    for r in results.items():
+        print r
+except requests.exceptions.RequestException as e:
+    print e.response.text
+```
+
 ### Enums
 ```
 observation_create(obstype): 1: Contiguous, 2: Picket Fence
@@ -42,6 +70,9 @@ Create pulsar.
 
 ```python
 from mwa_pulsar_client import client
+
+SERVER = 'mwa-pawsey-volt01.pawsey.ivec.org'
+AUTH = ('mwapulsar', 'PASS') # Replace with real password
 
 client.pulsar_create(SERVER, AUTH, 
                      name = 'J1935+1615', 
