@@ -30,6 +30,13 @@ def observation_create(addr, auth, obsid, pulsar, subband, obstype,
 def pulsar_file_upload(addr, auth, obsid, pulsar, subband, filetype, filepath)
 def pulsar_file_download(addr, auth, filename, output_path)
 ```
+
+### Enums
+```
+observation_create(obstype): 1: Contiguous, 2: Picket Fence
+pulsar_file_upload(filetype): 1: Archive, 2: Timeseries, 3: Diagnostics, 4: Calibration Solution
+```
+
 ## PSRCAT
 
 The Pulsar database provides an API to PSRCAT.
@@ -58,12 +65,6 @@ try:
         print r
 except requests.exceptions.RequestException as e:
     print e.response.text
-```
-
-### Enums
-```
-observation_create(obstype): 1: Contiguous, 2: Picket Fence
-pulsar_file_upload(filetype): 1: Archive, 2: Timeseries, 3: Diagnostics, 4: Calibration Solution
 ```
 
 ## Example
