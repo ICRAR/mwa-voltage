@@ -172,3 +172,21 @@ def pulsar_file_download(addr, auth, filename, output_path):
                 f.write(chunk)
 
     return full_output_path
+
+
+def psrcat(addr, auth, pulsar):
+    """
+    Return the pulsar details from psrcat.
+
+    Args:
+        pulsar: name of the pulsar.
+    Returns:
+        psrcat details as a python dict.
+    Exception:
+        pulsar not found or bad input.
+    """
+    path = 'https://{0}/{1}/'.format(addr, 'psrcat')
+    payload = {'name': pulsar, 'format': 'json'}
+    r = requests.post(url = path, auth = auth, data = payload)
+    r.raise_for_status()
+    return r.json()
