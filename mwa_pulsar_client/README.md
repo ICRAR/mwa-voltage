@@ -47,6 +47,8 @@ To input a pulsars name click on HTML tab at the bottom of the page.
 ## PSRCAT Example 
 
 ```python
+from mwa_pulsar_client import client
+
 SERVER = 'mwa-pawsey-volt01.pawsey.ivec.org'
 AUTH = ('mwapulsar', 'PASS') # Replace with real password
 
