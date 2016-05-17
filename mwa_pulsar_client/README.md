@@ -53,7 +53,7 @@ SERVER = 'mwa-pawsey-volt01.pawsey.ivec.org'
 AUTH = ('mwapulsar', 'PASS') # Replace with real password
 
 try:
-    results = client.psrcat(SERVER, AUTH, pulsar = 'J1935+161')
+    results = client.psrcat(SERVER, AUTH, pulsar = 'J1935+1616')
     for r in results.items():
         print r
 except requests.exceptions.RequestException as e:
