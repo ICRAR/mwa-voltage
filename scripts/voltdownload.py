@@ -19,10 +19,6 @@
 #    License along with this library; if not, write to the Free Software
 #    Foundation, Inc., 59 Temple Place, Suite 330, Boston,
 #    MA 02111-1307  USA
-#
-# Who                   When          What
-# ------------------------------------------------
-# dave.pallot@icrar.org   Nov/2014     Created
 
 import sys
 import os
@@ -34,34 +30,34 @@ import urllib
 import base64
 import time
 from optparse import OptionParser
+from multiprocessing import Queue
+from Queue import Empty
 
 username = 'ngas'
 password = 'ngas'
 
-class FileStatus():
+LOCK = threading.RLock()
+ERRORS = []
+COMPLETE = 0
+TOTAL_FILES = 0
 
-   def __init__(self, numfiles):
-      self.status = {}
-      self.lock = threading.RLock()
-      self.errors = []
-      self.filesComplete = 0
-      self.totalfiles = numfiles;
+def file_error(err):
+   global ERRORS
+   with LOCK:
+      ERRORS.append(err)
+      print err
 
-   def file_error(self, err):
-       with self.lock:
-           self.errors.append(err)
-           print err
+def file_starting(filename):
+   with LOCK:
+      print '%s [INFO] Downloading %s' % (time.strftime('%c'), filename)
 
-   def file_starting(self, filename):
-       with self.lock:
-           print '%s [INFO] Downloading %s' % (time.strftime('%c'), filename)
-
-   def file_complete(self, filename):
-       with self.lock:
-           self.filesComplete = self.filesComplete + 1
-           print '%s [INFO] %s complete [%d of %d]' % (time.strftime('%c'), filename,
-                                                        self.filesComplete, self.totalfiles)
-
+def file_complete(filename):
+   global COMPLETE
+   global TOTAL_FILES
+   with LOCK:
+      COMPLETE = COMPLETE + 1
+      print '%s [INFO] %s complete [%d of %d]' % (time.strftime('%c'), filename,
+                                                  COMPLETE, TOTAL_FILES)
 
 def split_raw_recombined(filename):
 
@@ -108,7 +104,39 @@ def split_raw_voltage(filename):
       raise Exception('invalid voltage data filename %s' % file)
 
 
-def query_observation(obs, host, type, timefrom, duration):
+def split_ics(filename):
+   try:
+      file = os.path.basename(filename)
+      if '.dat' not in file:
+         raise Exception('dat extension not found')
+
+      part = file.split('_')
+      if 'ics' not in part[2]:
+         raise Exception('ics not found in 3rd part')
+
+      return int(part[0]), int(part[1])
+
+   except Exception as e:
+      raise Exception('invalid ics filename %s' % file)
+
+
+def split_combined(filename):
+   try:
+      file = os.path.basename(filename)
+      if '.tar' not in file:
+         raise Exception('tar extension not found')
+
+      part = file.split('_')
+      if 'combined' not in part[2]:
+         raise Exception('combined not found in 3rd part')
+
+      return int(part[0]), int(part[1])
+
+   except Exception as e:
+      raise Exception('invalid combined filename %s' % file)
+
+
+def query_observation(obs, host, filetype, timefrom, duration):
 
    processRange = False
    if timefrom != None and duration != None:
@@ -116,7 +144,7 @@ def query_observation(obs, host, type, timefrom, duration):
 
    response = None
    try:
-      url = 'http://%s/metadata/obs/?obs_id=%s&filetype=%s' % (host, str(obs), str(type))
+      url = 'http://%s/metadata/obs/?obs_id=%s&filetype=%s' % (host, str(obs), str(filetype))
       request = urllib2.Request(url)
       response = urllib2.urlopen(request)
 
@@ -130,14 +158,18 @@ def query_observation(obs, host, type, timefrom, duration):
       keymap = {}
       files = json.loads(''.join(resultbuffer))['files']
       if processRange:
-         time = None
+         second = None
          for f, v in files.iteritems():
-            if type == 11:
-               obsid, time, vcs, part = split_raw_voltage(f)
-            elif type == 12:
-               obsid, time, chan = split_raw_recombined(f)
-
-            if time >= timefrom and time <= timefrom+duration:
+            if filetype == 11:
+               obsid, second, vcs, part = split_raw_voltage(f)
+            elif filetype == 12:
+               obsid, second, chan = split_raw_recombined(f)
+            elif filetype == 15:
+               obsid, second = split_ics(f)
+            elif filetype == 16:
+               obsid, second = split_combined(f)
+               
+            if second >= timefrom and second <= (timefrom + duration):
                keymap[f] = v['size']
       else:
          for f, v in files.iteritems():
@@ -162,13 +194,20 @@ def check_complete(filename, size, dir):
     return False
 
 
-def download_worker(url, size, filename, sem, out, stat, bufsize, prestage):
+def download_queue_thread(queue):
+   while not queue.empty():
+      try:
+         item = queue.get(timeout = 1)
+         download_worker(*item)
+      except Empty:
+         return
+      
+def download_worker(url, filename, size, out, bufsize, prestage):
 
     u = None
-    f = None
 
     try:
-        stat.file_starting(filename)
+        file_starting(filename)
 
         request = urllib2.Request(url)
         base64string = base64.encodestring('%s:%s' % (username, password)).replace('\n', '')
@@ -181,186 +220,162 @@ def download_worker(url, size, filename, sem, out, stat, bufsize, prestage):
         file_size = int(u.headers['Content-Length'])
         file_size_dl = 0
 
-        f = open(out + filename, 'wb')
-        while True:
-            buff = u.read(bufsize)
-            if not buff:
-              break
-
-            f.write(buff)
-            file_size_dl += len(buff)
+        with open(out + filename, 'wb') as f:
+           while True:
+               buff = u.read(bufsize)
+               if not buff:
+                 break
+   
+               f.write(buff)
+               file_size_dl += len(buff)
 
         if file_size_dl != file_size:
           raise Exception('size mismatch %s %s' % str(file_size), str(file_size_dl))
 
-        stat.file_complete(filename)
+        file_complete(filename)
 
     except urllib2.HTTPError as e:
-        stat.file_error('%s [ERROR] %s %s' % (time.strftime('%c'), filename, str(e.read()) ))
+        file_error('%s [ERROR] %s %s' % (time.strftime('%c'), filename, str(e.read()) ))
 
     except urllib2.URLError as urlerror:
         if hasattr(urlerror, 'reason'):
-            stat.file_error('%s [ERROR] %s %s' % (time.strftime('%c'), filename, str(urlerror.reason) ))
+            file_error('%s [ERROR] %s %s' % (time.strftime('%c'), filename, str(urlerror.reason) ))
         else:
-            stat.file_error('%s [ERROR] %s %s' % (time.strftime('%c'), filename, str(urlerror) ))
+            file_error('%s [ERROR] %s %s' % (time.strftime('%c'), filename, str(urlerror) ))
 
     except Exception as exp:
-        stat.file_error('%s [ERROR] %s %s' % (time.strftime('%c'), filename, str(exp) ))
+        file_error('%s [ERROR] %s %s' % (time.strftime('%c'), filename, str(exp) ))
 
     finally:
         if u:
             u.close()
-        if f:
-            f.flush()
-            f.close()
-
-        sem.release()
 
 
 def main():
-    stat = None
+   global COMPLETE
+   global TOTAL_FILES
+   global ERRORS
 
-    try:
-        parser = OptionParser(usage='usage: %prog [options]', version='%prog 1.0')
-        parser.add_option('--obs', action='store', dest='obs', help='Observation ID')
-        parser.add_option('--type', default = 11, action='store', type = 'int',
-                            dest='filetype', help='Voltage data type (Raw = 11, Recombined Raw = 12)')
-        parser.add_option('--from', action='store', type = 'int', dest='timefrom',
-                            help='Time from (taken from filename)')
-        parser.add_option('--duration', default = 0, type = 'int', dest='duration',
-                            help='Duration (seconds)')
-        parser.add_option('--ngas',  default='fe4.pawsey.ivec.org:7790', action='store',
-                            dest='ngashost', help='NGAS server (default: fe4.pawsey.ivec.org:7790)')
-        parser.add_option('--dir', default= './', action='store', dest='out',
-                            help='Output directory (default: ./')
-        parser.add_option('--parallel', default='6', action='store', dest='td',
-                            help='Number of simultaneous downloads (default: 6)')
+   parser = OptionParser(usage='usage: %prog [options]', version='%prog 1.0')
+   parser.add_option('--obs', action='store', dest='obs', help='Observation ID')
+   parser.add_option('--type', default = 16, action='store', type = 'int',
+                       dest='filetype', help='Voltage data type (Raw = 11, Raw Recombined = 12, ICS = 15, Recombined Archive = 16)')
+   parser.add_option('--from', action='store', type = 'int', dest='timefrom',
+                       help='Time from (taken from filename)')
+   parser.add_option('--duration', default = 0, type = 'int', dest='duration',
+                       help='Duration (seconds)')
+   parser.add_option('--ngas',  default='fe4.pawsey.ivec.org:7790', action='store',
+                       dest='ngashost', help='NGAS server (default: fe4.pawsey.ivec.org:7790)')
+   parser.add_option('--dir', default= './', action='store', dest='out',
+                       help='Output directory (default: ./')
+   parser.add_option('--parallel', default='6', action='store', dest='td',
+                       help='Number of simultaneous downloads (default: 6)')
+   
+   bufsize = 65536
+   (options, args) = parser.parse_args()
+   
+   if options.ngashost == None:
+       print 'NGAS host not defined'
+       sys.exit(-1)
+   
+   if options.obs == None:
+       print 'Observation ID is empty'
+       sys.exit(-1)
+   
+   if options.filetype == None:
+       print 'File type not specified'
+       sys.exit(-1)
+   
+   if options.timefrom == None:
+       print 'Time from not specified'
+       sys.exit(-1)
+   
+   if options.timefrom != None and options.duration != None:
+       if options.duration < 0:
+          print 'Duration must not be negative'
+          sys.exit(-1)
+   
+   numdownload = int(options.td)
+   
+   if numdownload <= 0 or numdownload > 12:
+       print 'Number of simultaneous downloads must be > 0 and <= 12'
+       sys.exit(-1)
+   
+   print '%s [INFO] Finding observation %s' % (time.strftime('%c'), options.obs)
+   
+   fileresult = query_observation(options.obs, 'mwa-metadata01.pawsey.org.au',
+                                   options.filetype, options.timefrom, options.duration)
+   if len(fileresult) <= 0:
+       print '%s [INFO] No files found for observation %s and file type %s' % (time.strftime('%c'),
+                                                                               options.obs,
+                                                                               int(options.filetype))
+       sys.exit(1)
+   
+   print '%s [INFO] Found %s files' % (time.strftime('%c'), str(len(fileresult)))
+   
+   if len(fileresult) > 12000:
+       print '%s [INFO] File limit exceeded 12000, please stagger your download' % (time.strftime('%c'))
+       sys.exit(1)
+   
+   # advise that we want to prestage all the files
+   filelist = []
+   for key, value in fileresult.iteritems():
+      filelist.append(key)
+   
+   prestage_files = json.dumps(filelist)
+   
+   if options.out == None or len(options.out) == 0:
+       options.out = './' + options.out + '/'
+   
+   # check we have a forward slash before file
+   if options.out[len(options.out)-1] != '/':
+        options.out += '/'
+   
+   dir = options.out
+   if not os.path.exists(dir):
+       os.makedirs(dir)
+   
+   TOTAL_FILES = len(fileresult)
+   download_queue = Queue()
+   
+   for filename, filesize in sorted(fileresult.items()):
+       url = 'http://%s/RETRIEVE?file_id=%s' % (options.ngashost, filename)
+       if not check_complete(filename, int(filesize), dir):
+           download_queue.put((url, filename, filesize, dir, bufsize, prestage_files))
+           continue
+       file_complete(filename)
+   
+   threads = []
+   for t in xrange(numdownload):
+      t = threading.Thread(target = download_queue_thread, args = (download_queue,))
+      t.setDaemon(True)
+      threads.append(t)
+      t.start()
+      
+   for t in threads:
+      while t.isAlive():
+         t.join(timeout = 0.25)
+               
+   print '%s [INFO] File Transfer Complete.' % (time.strftime('%c'))
+   
+   if ERRORS:
+       print '%s [INFO] File Transfer Error Summary:' % (time.strftime('%c'))
+       for i in ERRORS:
+           print i
+       raise Exception()
+   else:
+       print '%s [INFO] File Transfer Success.' % (time.strftime('%c'))
 
-        bufsize = 4096
-
-        (options, args) = parser.parse_args()
-
-        if options.ngashost == None:
-            print 'NGAS host not defined'
-            sys.exit(-1)
-
-        if options.obs == None:
-            print 'Observation ID is empty'
-            sys.exit(-1)
-
-        if options.filetype == None:
-            print 'File type not specified'
-            sys.exit(-1)
-
-        if options.timefrom == None:
-            print 'Time from not specified'
-            sys.exit(-1)
-
-        if options.timefrom != None and options.duration != None:
-            if options.duration < 0:
-               print 'Duration must not be negative'
-               sys.exit(-1)
-
-        numdownload = int(options.td)
-
-        if numdownload <= 0 or numdownload > 12:
-            print 'Number of simultaneous downloads must be > 0 and <= 12'
-            sys.exit(-1)
-
-        print '%s [INFO] Finding observation %s' % (time.strftime('%c'), options.obs)
-
-        fileresult = query_observation(options.obs, 'mwa-metadata01.pawsey.org.au',
-                                        options.filetype, options.timefrom, options.duration)
-        if len(fileresult) <= 0:
-            print '%s [INFO] No files found for observation %s and file type %s' % (time.strftime('%c'),
-                                                                                    options.obs,
-                                                                                    int(options.filetype))
-            sys.exit(1)
-
-        print '%s [INFO] Found %s files' % (time.strftime('%c'), str(len(fileresult)))
-
-        if len(fileresult) > 12000:
-            print '%s [INFO] File limit exceeded 12000, please stagger your download' % (time.strftime('%c'))
-            sys.exit(1)
-
-        # advise that we want to prestage all the files
-        filelist = []
-        for key, value in fileresult.iteritems():
-           filelist.append(key)
-
-        prestageStr = json.dumps(filelist)
-
-        if options.out == None or len(options.out) == 0:
-            options.out = './' + options.out + '/'
-
-        # check we have a forward slash before file
-        if options.out[len(options.out)-1] != '/':
-             options.out += '/'
-
-        dir = options.out # + options.obs + '/'
-        if not os.path.exists(dir):
-            os.makedirs(dir)
-
-        stat = FileStatus(len(fileresult))
-        urls = []
-
-        for key, value in sorted(fileresult.items()):
-            url = 'http://%s/RETRIEVE?file_id=%s' % (options.ngashost, key)
-
-            if check_complete(key, int(value), dir) is False:
-                urls.append((url, value, key))
-            else:
-                stat.file_complete(key)
-
-        threads = []
-        s = threading.BoundedSemaphore(value = numdownload)
-        for u in urls:
-            while True:
-                if s.acquire(blocking = False):
-                    t = threading.Thread(target = download_worker,
-                                            args = (u[0], u[1], u[2],
-                                            s, dir, stat, int(bufsize), prestageStr))
-                    t.setDaemon(True)
-                    t.start()
-                    threads.append(t)
-                    break
-                else:
-                    time.sleep(1)
-
-        # wait for all the threads to finish
-        while len(threads) > 0:
-            for t in list(threads):
-                t.join(0.25)
-                if not t.isAlive():
-                    threads.remove(t)
-
-        print '%s [INFO] File Transfer Complete.' % (time.strftime('%c'))
-
-        # check if we have errors
-        if len(stat.errors) > 0:
-            print '%s [INFO] File Transfer Error Summary:' % (time.strftime('%c'))
-            for i in stat.errors:
-                print i
-
-            raise Exception()
-        else:
-            print '%s [INFO] File Transfer Success.' % (time.strftime('%c'))
-
-    except KeyboardInterrupt as k:
-        raise k
-
-    except Exception as e:
-        raise e
 
 if __name__ == '__main__':
     try:
         main()
-        sys.exit(0)
+        os._exit(0)
 
     except KeyboardInterrupt as k:
         print 'Interrupted, shutting down'
-        sys.exit(2)
+        os._exit(2)
 
     except Exception as e:
         print e
-        sys.exit(3)
+        os._exit(3)
