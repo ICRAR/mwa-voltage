@@ -144,7 +144,7 @@ def query_observation(obs, host, filetype, timefrom, duration):
 
    response = None
    try:
-      url = 'http://%s/metadata/obs/?obs_id=%s&filetype=%s' % (host, str(obs), str(filetype))
+      url = 'http://%s/metadata/obs/?obs_id=%s' % (host, str(obs))
       request = urllib2.Request(url)
       response = urllib2.urlopen(request)
 
@@ -160,20 +160,36 @@ def query_observation(obs, host, filetype, timefrom, duration):
       if processRange:
          second = None
          for f, v in files.iteritems():
-            if filetype == 11:
+            ft = v['filetype']
+            size = v['size']
+            add = False
+            if filetype == 11 and ft == 11:
                obsid, second, vcs, part = split_raw_voltage(f)
-            elif filetype == 12:
-               obsid, second, chan = split_raw_recombined(f)
-            elif filetype == 15:
+               add = True
+            elif filetype == 15 and ft == 15:
                obsid, second = split_ics(f)
+               add = True
             elif filetype == 16:
-               obsid, second = split_combined(f)
-               
-            if second >= timefrom and second <= (timefrom + duration):
-               keymap[f] = v['size']
+               if ft == 16:
+                  obsid, second = split_combined(f)
+                  add = True
+               elif ft == 15:
+                  obsid, second = split_ics(f)
+                  add = True
+
+            if add and second >= timefrom and second <= (timefrom + duration):
+                  keymap[f] = size
+                  
       else:
          for f, v in files.iteritems():
-            keymap[f] = v['size']
+            ft = v['filetype']
+            size = v['size']
+            if filetype == 11 and ft == 11:
+               keymap[f] = size
+            elif filetype == 15 and ft == 15:
+               keymap[f] = size
+            elif filetype == 16 and (ft == 15 or ft == 16):
+               keymap[f] = size
 
       return keymap
 
@@ -259,7 +275,7 @@ def main():
    parser = OptionParser(usage='usage: %prog [options]', version='%prog 1.0')
    parser.add_option('--obs', action='store', dest='obs', help='Observation ID')
    parser.add_option('--type', default = 16, action='store', type = 'int',
-                       dest='filetype', help='Voltage data type (Raw = 11, Raw Recombined = 12, ICS = 15, Recombined Archive = 16)')
+                       dest='filetype', help='Voltage data type (Raw = 11, ICS Only = 15, Recombined and ICS = 16)')
    parser.add_option('--from', action='store', type = 'int', dest='timefrom',
                        help='Time from (taken from filename)')
    parser.add_option('--duration', default = 0, type = 'int', dest='duration',
@@ -312,7 +328,7 @@ def main():
        sys.exit(1)
    
    print '%s [INFO] Found %s files' % (time.strftime('%c'), str(len(fileresult)))
-   
+
    if len(fileresult) > 12000:
        print '%s [INFO] File limit exceeded 12000, please stagger your download' % (time.strftime('%c'))
        sys.exit(1)
