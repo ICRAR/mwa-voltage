@@ -102,8 +102,6 @@ int read_metadata(const char* fitsfilename, course_chan_freq* course_chan_out, t
    strcpy(chans, value);
    free(value);
 
-   //printf("%s\n", chans);
-
    unsigned int ch_index = 0;
    char* token = NULL;
    char* saveptr = NULL;
@@ -149,11 +147,19 @@ int read_metadata(const char* fitsfilename, course_chan_freq* course_chan_out, t
       fits_close_file(fptr, &status);
       return -1;
    }
-
+   
+   char flagcol[] = "Flag";
    char nullstring[] = "NULL";
    char flags[256];
+   int colnum;
 
-   if (fits_read_col(fptr, TBYTE, 7, 1, 1, 256, nullstring, &flags, &anynull, &status) != 0) {
+   if (fits_get_colnum(fptr, CASEINSEN, flagcol, &colnum, &status) != 0) {
+      printf("Could not read flag column from binary table.\n");
+      fits_close_file(fptr, &status);
+      return -1;
+   }
+
+   if (fits_read_col(fptr, TBYTE, colnum, 1, 1, 256, nullstring, &flags, &anynull, &status) != 0) {
       printf("Could not read flag data from binary table.\n");
       fits_close_file(fptr, &status);
       return -1;
