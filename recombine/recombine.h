@@ -15,7 +15,8 @@
 #define PACKETS_PER_50MS 48000
 #define PACKET_SIZE_BYTES 264
 #define BYTES_PER_SEC (PACKETS_PER_50MS * PACKET_SIZE_BYTES * 20)
-
+#define VOLT_FILESIZE (PACKETS_PER_50MS * PACKET_SIZE_BYTES)
+#define BUFFSIZE 1048576
 
 typedef struct course_chan_input {
 	int m_handle;

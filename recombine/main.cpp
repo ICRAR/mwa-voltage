@@ -31,7 +31,6 @@ int main(int argc, char **argv) {
    char *gvalue = NULL;
    char *tvalue = NULL;
    char *mvalue = NULL;
-   int index;
    int c;
 
    opterr = 0;

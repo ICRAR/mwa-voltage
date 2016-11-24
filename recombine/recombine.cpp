@@ -62,7 +62,6 @@
 
 #include "recombine.h"
 
-
 static unsigned short byte_to_sum[256] = {
 0,1,4,9,16,25,36,49,49,49,36,25,16,9,4,1,1,2,5,10,17,26,37,50,50,50,37,26,17,10,5,2,
 4,5,8,13,20,29,40,53,53,53,40,29,20,13,8,5,9,10,13,18,25,34,45,58,58,58,45,34,25,18,13,10,
@@ -119,7 +118,6 @@ int read_metadata(const char* fitsfilename, course_chan_freq* course_chan_out, t
       return -1;
    }
 
-   char extname[FLEN_VALUE];
    int anynull, hdutype;
    long int rows = 0;
    status = 0;
@@ -195,6 +193,9 @@ int read_metadata(const char* fitsfilename, course_chan_freq* course_chan_out, t
 
 int read_from_input(course_chan_input_matrix* matrix, course_chan_input_array* input, tile_flags* flags)
 {
+   ssize_t read_in = 0;
+   size_t total_read = 0;
+
    static bool first_run = true;
 
    if (first_run) {
@@ -212,23 +213,26 @@ int read_from_input(course_chan_input_matrix* matrix, course_chan_input_array* i
             continue;
          }
 
-         uint64_t read_in = 0;
-         uint64_t total_read = 0;
-
-         char* buff = (char*)malloc(PACKETS_PER_50MS * PACKET_SIZE_BYTES);
+         char* buff = (char*)malloc(VOLT_FILESIZE);
          if (buff == NULL)
             return errno;
 
-         memset(buff, 0, PACKETS_PER_50MS * PACKET_SIZE_BYTES);
+         memset(buff, 0, VOLT_FILESIZE);
 
-         while ((read_in = read(input->m_handles[i].m_handle, (buff + total_read), (PACKETS_PER_50MS * PACKET_SIZE_BYTES)-total_read)) > 0)
-            total_read += read_in;
+         read_in = 0;
+         total_read = 0;
 
-         if (total_read != (PACKETS_PER_50MS * PACKET_SIZE_BYTES))
+         while ((read_in = read(input->m_handles[i].m_handle,
+                               (buff + total_read),
+                               ((VOLT_FILESIZE - total_read) >= BUFFSIZE) ? BUFFSIZE : VOLT_FILESIZE - total_read)) > 0)
+         {
+            total_read += (size_t)read_in;
+         }
+
+         if (total_read != VOLT_FILESIZE)
             return errno;
 
-
-         unsigned short w1 = (buff[1] << 8) | buff[0];
+         //unsigned short w1 = (buff[1] << 8) | buff[0];
          unsigned short w2 = (buff[3] << 8) | buff[2];
          unsigned short w3 = (buff[5] << 8) | buff[4];
 
@@ -261,11 +265,11 @@ int read_from_input(course_chan_input_matrix* matrix, course_chan_input_array* i
          for (int j = 0; j < 8; j++) {
             // if this entry in the matrix does not have a stream, then pad it's buffer with all zeros and make contributing tiles zero
             if (matrix->m_input_matrix[i][j].pad_input == true) {
-               char* buff = (char*)malloc(PACKETS_PER_50MS * PACKET_SIZE_BYTES);
+               char* buff = (char*)malloc(VOLT_FILESIZE);
                if (buff == NULL)
                   return errno;
 
-               memset(buff, 0, PACKETS_PER_50MS * PACKET_SIZE_BYTES);
+               memset(buff, 0, VOLT_FILESIZE);
 
                matrix->m_input_matrix[i][j].m_buff = buff;
                matrix->m_contributing_tiles[i][j] = 0;
@@ -288,13 +292,17 @@ int read_from_input(course_chan_input_matrix* matrix, course_chan_input_array* i
             if (matrix->m_input_matrix[i][j].pad_input == true)
                continue;
 
-            uint64_t read_in = 0;
-            uint64_t total_read = 0;
+            read_in = 0;
+            total_read = 0;
 
-            while ((read_in = read(matrix->m_input_matrix[i][j].m_handle, (matrix->m_input_matrix[i][j].m_buff + total_read), (PACKETS_PER_50MS * PACKET_SIZE_BYTES)-total_read)) > 0)
-               total_read += read_in;
+            while ((read_in = read(matrix->m_input_matrix[i][j].m_handle,
+                                  (matrix->m_input_matrix[i][j].m_buff + total_read),
+                                  ((VOLT_FILESIZE - total_read) >= BUFFSIZE) ? BUFFSIZE : VOLT_FILESIZE - total_read)) > 0)
+            {
+               total_read += (size_t)read_in;
+            }
 
-            if (total_read != (PACKETS_PER_50MS * PACKET_SIZE_BYTES))
+            if (total_read != VOLT_FILESIZE)
                return errno;
          }
    }
@@ -487,21 +495,23 @@ int recombine(course_chan_input_array* input, course_chan_output_array* output, 
 
       if (!skipcourse) {
 
+         ssize_t written = 0;
+         size_t total_written = 0;
+
          //write out each course channel
          for (int c = 0; c < 24; c++) {
 
-            /*if (zero_copy_buffer_write(output->m_handles[c].m_handle, file_buffer[c], COURSE_CHAN_BUFF) != 0) {
-               retcode = errno;
-               goto Error;
-            }*/
+            written = 0;
+            total_written = 0;
 
-            uint64_t written = 0;
-            uint64_t total_written = 0;
+            while ((written = write(output->m_handles[c].m_handle,
+                                    file_buffer[c]+total_written,
+                                    (COURSE_CHAN_BUFF-total_written) >= BUFFSIZE ? BUFFSIZE : COURSE_CHAN_BUFF-total_written)) > 0)
+            {
+               total_written += (size_t)written;
+            }
 
-            while ((written = write(output->m_handles[c].m_handle, file_buffer[c]+total_written, (COURSE_CHAN_BUFF)-total_written)) > 0)
-               total_written += written;
-
-            if (total_written != (COURSE_CHAN_BUFF)) {
+            if (total_written != COURSE_CHAN_BUFF) {
                retcode = errno;
                goto Error;
             }
@@ -514,19 +524,18 @@ int recombine(course_chan_input_array* input, course_chan_output_array* output, 
 
    if (!skipics) {
 
-      /*if (zero_copy_buffer_write(ics_out->m_handle, ics_buffer, ICS_BUFF) != 0) {
-         retcode = errno;
-         goto Error;
-      }*/
-
       // write out ics buffers
-      uint64_t written_ics = 0;
-      uint64_t total_written_ics = 0;
+      ssize_t written_ics = 0;
+      size_t total_written_ics = 0;
 
-      while ((written_ics = write(ics_out->m_handle, ics_buffer+total_written_ics, (ICS_BUFF)-total_written_ics)) > 0)
-         total_written_ics += written_ics;
+      while ((written_ics = write(ics_out->m_handle,
+                                  ics_buffer+total_written_ics,
+                                  (ICS_BUFF-total_written_ics) >= BUFFSIZE ? BUFFSIZE : ICS_BUFF-total_written_ics)) > 0)
+      {
+         total_written_ics += (size_t)written_ics;
+      }
 
-      if (total_written_ics != (ICS_BUFF)) {
+      if (total_written_ics != ICS_BUFF) {
          retcode = errno;
          goto Error;
       }
