@@ -1,6 +1,38 @@
+# -*- coding: utf8 -*-
 import os
 import urllib
 import requests
+
+
+def detection_find_calibrator(addr, auth, detection_obsid):
+    """
+    Find calibrators used in a detection from a particular observation.
+    
+    Args:
+        addr: hostname or ip address of database server.
+        auth: tuple of username and password. 
+        detection_obsid: observation id of a detection
+    """
+    path = 'http://{0}/{1}/'.format(addr, 'detection_find_calibrator')
+    payload = {'detection_obsid': detection_obsid}
+    r = requests.get(url=path,
+                                auth=auth,
+                                params=urllib.urlencode(payload))
+    r.raise_for_status()
+    return r.json()
+
+def calibrator_list(addr, auth):
+    """
+    Return a list of the all the calibrators in the database.
+    
+    Args:
+        addr: hostname or ip address of database server.
+        auth: tuple of username and password. 
+    """
+    path = 'http://{0}/{1}/'.format(addr, 'calibrator_list')
+    r = requests.get(url=path, auth=auth)
+    r.raise_for_status()
+    return r.json()
 
 def pulsar_list(addr, auth):
     """
@@ -10,8 +42,8 @@ def pulsar_list(addr, auth):
         addr: hostname or ip address of database server.
         auth: tuple of username and password. 
     """
-    path = 'https://{0}/{1}/'.format(addr, 'pulsar_list')
-    r = requests.post(url = path, auth = auth)
+    path = 'http://{0}/{1}/'.format(addr, 'pulsar_list')
+    r = requests.get(url=path, auth=auth)
     r.raise_for_status()
     return r.json()
 
@@ -24,13 +56,15 @@ def pulsar_get(addr, auth, name):
         auth: tuple of username and password.
         name: name of pulsar.
     """
-    path = 'https://{0}/{1}/'.format(addr, 'pulsar_get')
+    path = 'http://{0}/{1}/'.format(addr, 'pulsar_get')
     payload = {'name': name}
-    r = requests.post(url = path, auth = auth, data = payload)
+    r = requests.get(url=path,
+                                auth=auth,
+                                params=urllib.urlencode(payload))
     r.raise_for_status()
     return r.json()
 
-def pulsar_create(addr, auth, name, ra, dec):
+def pulsar_create(addr, auth, **kwargs):
     """
     Create a new pulsar. 
     
@@ -43,105 +77,136 @@ def pulsar_create(addr, auth, name, ra, dec):
     Raises:
         Exception if pulsar already exists or there is an input error. 
     """
-    path = 'https://{0}/{1}/'.format(addr, 'pulsar_create')
-    payload = {'name': name, 'ra': ra, 'dec': dec}
-    r = requests.post(url = path, auth = auth, data = payload)
+    path = 'http://{0}/{1}/'.format(addr, 'pulsar_create')
+    r = requests.post(url=path, auth=auth, data=kwargs)
     r.raise_for_status()
     return r.json()
 
-def observation_list(addr, auth):
+def detection_list(addr, auth):
     """
-    Return a list of the all the pulsar observations in the database.
+    Return a list of the all the pulsar detection in the database.
     
     Args:
         addr: hostname or ip address of database server.
         auth: tuple of username and password. 
     """
-    path = 'https://{0}/{1}/'.format(addr, 'observation_list')
-    r = requests.post(url = path, auth = auth)
+    path = 'http://{0}/{1}/'.format(addr, 'detection_list')
+    r = requests.get(url=path, auth=auth)
     r.raise_for_status()
     return r.json()
 
-def observation_get(addr, auth, obsid):
+def detection_get(addr, auth, obsid):
     """
-    Return a specified pulsar observation from the database.
+    Return a specified pulsar detection from the database.
     
     Args:
         addr: hostname or ip address of database server.
         auth: tuple of username and password.
         obsid: observation id.
     """
-    path = 'https://{0}/{1}/'.format(addr, 'observation_get')
+    path = 'http://{0}/{1}/'.format(addr, 'detection_get')
     payload = {'observationid': obsid}
-    r = requests.post(url = path, auth = auth, data = payload)
+    r = requests.get(url=path,
+                                auth=auth,
+                                params=urllib.urlencode(payload))
     r.raise_for_status()
     return r.json()
 
-def observation_create(addr, auth, obsid, pulsar, subband, obstype,
-                       startcchan = None, stopcchan = None, flux = None,
-                       flux_error = None, width = None, width_error = None,
-                       scattering = None, scattering_error = None,
-                       dm = None, dm_error = None):
+def detection_update(addr, auth, **kwargs):
     """
-    Create a new pulsar. 
-    Obsid, pulsar and subband form a unique set per observation. 
-    
+    Update an extising detection. 
+    observationid, pulsar and subband, incoherent form a unique set per detection. 
+
     Args:
         addr: hostname or ip address of database server.
         auth: tuple of username and password.
-        obsid: observation id. 
-        pulsar: name of pulsar. 
-        subband: subband of observation.
-        obstype: type of observation (1: Contiguous, 2: Picket Fence)
-        startcchan: start course channel.
-        stopcchan: stop course channel. 
-        flux: mJy
-        flux_error: +-mJy
-        width: ms
-        width_error: +-ms
-        scattering: s
-        scattering_error: +-s
-        dm: pc/cm^3
-        dm_error: +-pc/cm^3
+        observationid: observation id. 
+        pulsar: name of pulsar (string). 
+        subband: subband of detection.
+        incoherent: incoherent data set (True), coherent (False)
+        observation_type: type of observation (1: Contiguous, 2: Picket Fence)
+        calibrator: id of calibrator (or None).
+        startcchan: start course channel (or None).
+        stopcchan: stop course channel (or None). 
+        flux: mJy (or None)
+        flux_error: ±mJy (or None)
+        width: ms (or None)
+        width_error: ±ms (or None)
+        scattering: s (or None)
+        scattering_error: ±s (or None)
+        dm: pc/cm³ (or None)
+        dm_error: ±pc/cm³
         
     Raises:
-        Exception if observation already exists or there is an input error.
+        Exception if detection already exists or there is an input error.
     """
-    path = 'https://{0}/{1}/'.format(addr, 'observation_create')
-    payload = {'observationid': obsid, 'pulsar': pulsar, 'subband': subband,
-                'observationtype': obstype, 'startcchan': startcchan, 'stopcchan': stopcchan,
-                'flux': flux, 'flux_error': flux_error,
-                'width': width, 'width_error': width_error,
-                'scattering': scattering, 'scattering_error': scattering_error,
-                'dm': dm, 'dm_error': dm_error}
-    r = requests.post(url = path, auth = auth, data = payload)
+    path = 'http://{0}/{1}/'.format(addr, 'detection_update')
+    r = requests.post(url=path, auth=auth, data=kwargs)
     r.raise_for_status()
     return r.json()
 
-def pulsar_file_upload(addr, auth, obsid, pulsar, subband, filetype, filepath):
+def detection_create(addr, auth, **kwargs):
     """
-    Upload a file against an observation. 
+    Create a new detection. 
+    observationid, pulsar and subband, incoherent form a unique set per detection. 
+
+    Args:
+        addr: hostname or ip address of database server.
+        auth: tuple of username and password.
+        observationid: observation id. 
+        pulsar: name of pulsar (string). 
+        subband: subband of detection.
+        incoherent: incoherent data set (True), coherent (False)
+        observation_type: type of observation (1: Contiguous, 2: Picket Fence)
+        calibrator: id of calibrator (or None).
+        startcchan: start course channel (or None).
+        stopcchan: stop course channel (or None). 
+        flux: mJy (or None)
+        flux_error: ±mJy (or None)
+        width: ms (or None)
+        width_error: ±ms (or None)
+        scattering: s (or None)
+        scattering_error: ±s (or None)
+        dm: pc/cm³ (or None)
+        dm_error: ±pc/cm³
+
+    Raises:
+        Exception if detection already exists or there is an input error.
+    """
+    path = 'http://{0}/{1}/'.format(addr, 'detection_create')
+    r = requests.post(url=path, auth=auth, data=kwargs)
+    r.raise_for_status()
+    return r.json()
+
+def pulsar_file_upload(addr, auth, **kwargs):
+    """
+    Upload a file against a detection.
     
     Args:
         addr: hostname or ip address of database server.
         auth: tuple of username and password.
         obsid: observation id.
         pulsar: name of pulsar. 
-        subband: subband of observation.
+        subband: subband of detection.
+        incoherent: incoherent observation.
         filetype: (1: Archive, 2: Timeseries, 3: Diagnostics, 4: Calibration Solution)
         filepath: full local path of the file to upload. 
     """
-    path = 'https://{0}/{1}/'.format(addr, 'pulsar_file_upload')
-    headers = {'obsid': obsid, 'pulsar': pulsar, 'subband': subband,
-                'filetype': filetype}
+    path = 'http://{0}/{1}/'.format(addr, 'pulsar_file_upload')
+    filepath = kwargs.get('filepath', None)
+    if not filepath:
+        raise Exception('filepath not found')
     files = {'path': open(filepath, 'rb')}
-    r = requests.post(url = path, auth = auth, files = files, headers = headers)
+    new_kwargs = {}
+    for k, v in kwargs.iteritems():
+        new_kwargs[k] = str(v)
+    r = requests.post(url=path, auth=auth, files=files, headers=new_kwargs)
     r.raise_for_status()
     return r.json()
 
-def pulsar_file_download(addr, auth, filename, output_path):
+def pulsar_file_download(addr, auth, filename, outputpath):
     """
-    Download a specific pulsar file. 
+    Download a specific detection file. 
     
     Args:
         addr: hostname or ip address of database server.
@@ -154,20 +219,22 @@ def pulsar_file_download(addr, auth, filename, output_path):
     Raises:
         Exception if there is a file error or file not found. 
     """
-    path = 'https://{0}/{1}/'.format(addr, 'pulsar_file_download')
+    path = 'http://{0}/{1}/'.format(addr, 'pulsar_file_download')
     params = {'filename': filename}
-    r = requests.get(url = path,
-                        auth = auth,
-                        params = urllib.urlencode(params),
-                        stream = True)
+    r = requests.get(url=path,
+                        auth=auth,
+                        params=urllib.urlencode(params),
+                        stream=True)
     r.raise_for_status()
 
-    if not os.path.exists(output_path):
-        os.makedirs(output_path)
+    try:
+        os.makedirs(outputpath)
+    except OSError:
+        pass
 
-    full_output_path = '{0}/{1}'.format(output_path, filename)
+    full_output_path = '{0}/{1}'.format(outputpath, filename)
     with open(full_output_path, 'wb') as f:
-        for chunk in r.iter_content(chunk_size = 1024):
+        for chunk in r.iter_content(chunk_size=1024):
             if chunk:
                 f.write(chunk)
 
@@ -185,8 +252,10 @@ def psrcat(addr, auth, pulsar):
     Exception:
         pulsar not found or bad input.
     """
-    path = 'https://{0}/{1}/'.format(addr, 'psrcat')
+    path = 'http://{0}/{1}/'.format(addr, 'psrcat')
     payload = {'name': pulsar, 'format': 'json'}
-    r = requests.post(url = path, auth = auth, data = payload)
+    r = requests.get(url=path,
+                                auth=auth,
+                                params=urllib.urlencode(payload))
     r.raise_for_status()
     return r.json()
