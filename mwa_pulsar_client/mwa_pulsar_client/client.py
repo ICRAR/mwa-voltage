@@ -4,7 +4,7 @@ import urllib
 import requests
 
 
-def detection_find_calibrator(addr, auth, detection_obsid):
+def detection_find_calibrator(addr, auth, **kwargs):
     """
     Find calibrators used in a detection from a particular observation.
     
@@ -14,10 +14,9 @@ def detection_find_calibrator(addr, auth, detection_obsid):
         detection_obsid: observation id of a detection
     """
     path = 'http://{0}/{1}/'.format(addr, 'detection_find_calibrator')
-    payload = {'detection_obsid': detection_obsid}
     r = requests.get(url=path,
-                                auth=auth,
-                                params=urllib.urlencode(payload))
+                    auth=auth,
+                    params=urllib.urlencode(**kwargs))
     r.raise_for_status()
     return r.json()
 
@@ -47,7 +46,7 @@ def pulsar_list(addr, auth):
     r.raise_for_status()
     return r.json()
 
-def pulsar_get(addr, auth, name):
+def pulsar_get(addr, auth, **kwargs):
     """
     Return a specified pulsar from the database.
     
@@ -57,10 +56,9 @@ def pulsar_get(addr, auth, name):
         name: name of pulsar.
     """
     path = 'http://{0}/{1}/'.format(addr, 'pulsar_get')
-    payload = {'name': name}
     r = requests.get(url=path,
-                                auth=auth,
-                                params=urllib.urlencode(payload))
+                    auth=auth,
+                    params=urllib.urlencode(kwargs))
     r.raise_for_status()
     return r.json()
 
@@ -95,20 +93,19 @@ def detection_list(addr, auth):
     r.raise_for_status()
     return r.json()
 
-def detection_get(addr, auth, obsid):
+def detection_get(addr, auth, **kwargs):
     """
     Return a specified pulsar detection from the database.
     
     Args:
         addr: hostname or ip address of database server.
         auth: tuple of username and password.
-        obsid: observation id.
+        observationid: observation id.
     """
     path = 'http://{0}/{1}/'.format(addr, 'detection_get')
-    payload = {'observationid': obsid}
     r = requests.get(url=path,
-                                auth=auth,
-                                params=urllib.urlencode(payload))
+                    auth=auth,
+                    params=urllib.urlencode(kwargs))
     r.raise_for_status()
     return r.json()
 
