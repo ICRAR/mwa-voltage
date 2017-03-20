@@ -17,109 +17,268 @@ python setup.py install
 ## Functions
 
 ```python
-def pulsar_list(addr, auth)
-def pulsar_get(addr, auth, name)
-def pulsar_create(addr, auth, name, ra, dec)
-def observation_list(addr, auth)
-def observation_get(addr, auth, obsid)
-def observation_create(addr, auth, obsid, pulsar, subband, obstype,
-                       startcchan = None, stopcchan = None, flux = None,
-                       flux_error = None, width = None, width_error = None,
-                       scattering = None, scattering_error = None,
-                       dm = None, dm_error = None)
-def pulsar_file_upload(addr, auth, obsid, pulsar, subband, filetype, filepath)
-def pulsar_file_download(addr, auth, filename, output_path)
+def detection_find_calibrator(addr, auth, **kwargs):
+    """
+    Find calibrators used in a detection from a particular observation.
+    
+    Args:
+        addr: hostname or ip address of database server.
+        auth: tuple of username and password. 
+        detection_obsid: observation id of a detection
+    """
+
+def calibrator_create(addr, auth, **kwargs):
+    """
+    Create a new calibrator.
+    
+    Args:
+        addr: hostname or ip address of database server.
+        auth: tuple of username and password.
+        observationid: observation id of the calibrator.
+        calibrator_type: id of calibrator type
+        notes: any notes regarding calibrator
+    """
+
+def calibrator_list(addr, auth):
+    """
+    Return a list of the all the calibrators in the database.
+    
+    Args:
+        addr: hostname or ip address of database server.
+        auth: tuple of username and password. 
+    """
+
+def pulsar_list(addr, auth):
+    """
+    Return a list of the all the pulars in the database.
+    
+    Args:
+        addr: hostname or ip address of database server.
+        auth: tuple of username and password. 
+    """
+
+def pulsar_get(addr, auth, **kwargs):
+    """
+    Return a specified pulsar from the database.
+    
+    Args:
+        addr: hostname or ip address of database server.
+        auth: tuple of username and password.
+        name: name of pulsar.
+    """
+
+def pulsar_create(addr, auth, **kwargs):
+    """
+    Create a new pulsar. 
+    
+    Args:
+        addr: hostname or ip address of database server.
+        auth: tuple of username and password.
+        name: name of pulsar.
+        ra: right ascension of pulsar. 
+        dec: declination of pulsar. 
+    Raises:
+        Exception if pulsar already exists or there is an input error.
+    """
+def detection_list(addr, auth):
+    """
+    Return a list of the all the pulsar detection in the database.
+    
+    Args:
+        addr: hostname or ip address of database server.
+        auth: tuple of username and password. 
+    """
+
+def detection_get(addr, auth, **kwargs):
+    """
+    Return a specified pulsar detection from the database.
+    
+    Args:
+        addr: hostname or ip address of database server.
+        auth: tuple of username and password.
+        observationid: observation id.
+    """
+
+def detection_update(addr, auth, **kwargs):
+    """
+    Update an extising detection. 
+    observationid, pulsar and subband, incoherent form a unique set per detection. 
+
+    Args:
+        addr: hostname or ip address of database server.
+        auth: tuple of username and password.
+        observationid: observation id. 
+        pulsar: name of pulsar (string). 
+        subband: subband of detection.
+        incoherent: incoherent data set (True), coherent (False)
+        observation_type: type of observation (1: Contiguous, 2: Picket Fence)
+        calibrator: id of calibrator (or None).
+        startcchan: start course channel (or None).
+        stopcchan: stop course channel (or None). 
+        flux: mJy (or None)
+        flux_error: ±mJy (or None)
+        width: ms (or None)
+        width_error: ±ms (or None)
+        scattering: s (or None)
+        scattering_error: ±s (or None)
+        dm: pc/cm³ (or None)
+        dm_error: ±pc/cm³
+        
+    Raises:
+        Exception if detection already exists or there is an input error.
+    """
+
+def detection_create(addr, auth, **kwargs):
+    """
+    Create a new detection. 
+    observationid, pulsar and subband, incoherent form a unique set per detection. 
+
+    Args:
+        addr: hostname or ip address of database server.
+        auth: tuple of username and password.
+        observationid: observation id. 
+        pulsar: name of pulsar (string). 
+        subband: subband of detection.
+        incoherent: incoherent data set (True), coherent (False)
+        observation_type: type of observation (1: Contiguous, 2: Picket Fence)
+        calibrator: id of calibrator (or None).
+        startcchan: start course channel (or None).
+        stopcchan: stop course channel (or None). 
+        flux: mJy (or None)
+        flux_error: ±mJy (or None)
+        width: ms (or None)
+        width_error: ±ms (or None)
+        scattering: s (or None)
+        scattering_error: ±s (or None)
+        dm: pc/cm³ (or None)
+        dm_error: ±pc/cm³
+
+    Raises:
+        Exception if detection already exists or there is an input error.
+    """
+
+def pulsar_file_upload(addr, auth, **kwargs):
+    """
+    Upload a file against a detection.
+    
+    Args:
+        addr: hostname or ip address of database server.
+        auth: tuple of username and password.
+        obsid: observation id.
+        pulsar: name of pulsar. 
+        subband: subband of detection.
+        incoherent: incoherent observation.
+        filetype: (1: Archive, 2: Timeseries, 3: Diagnostics, 4: Calibration Solution)
+        filepath: full local path of the file to upload. 
+    """
+
+def pulsar_file_download(addr, auth, filename, outputpath):
+    """
+    Download a specific detection file. 
+    
+    Args:
+        addr: hostname or ip address of database server.
+        auth: tuple of username and password.
+        obsid: observation id.
+        filename: name of the file recorded in the database. 
+        out_path: local path where to place file.
+    Returns:
+        full path of the downloaded file.
+    Raises:
+        Exception if there is a file error or file not found. 
+    """
+
+def psrcat(addr, auth, pulsar):
+    """
+    Return the pulsar details from psrcat.
+
+    Args:
+        pulsar: name of the pulsar.
+    Returns:
+        psrcat details as a python dict.
+    Exception:
+        pulsar not found or bad input.
+    """
 ```
 
-### Enums
-```
-observation_create(obstype): 1: Contiguous, 2: Picket Fence
-pulsar_file_upload(filetype): 1: Archive, 2: Timeseries, 3: Diagnostics, 4: Calibration Solution
-```
-
-## PSRCAT
-
-The Pulsar database provides an API to PSRCAT.
-
-Access it through the HTTP API:
+To determine the funtion parameters bring up a python terminal and use the help function.
 
 ```python
-def psrcat(addr, auth, pulsar)
+
+from mwa_pulsar_client import client
+help(client.detection_create)
+
 ```
 
-Or via the [PSRCAT webform] (https://mwa-pawsey-volt01.pawsey.ivec.org/psrcat/). Note you must be logged in to access the page. The username password is the same as your normal login. 
-
-To input a pulsars name click on HTML tab at the bottom of the page. 
-
-## PSRCAT Example 
+## Example
 
 ```python
 from mwa_pulsar_client import client
-import requests
 
 SERVER = 'mwa-pawsey-volt01.pawsey.ivec.org'
 AUTH = ('mwapulsar', 'PASS') # Replace with real password
 
 try:
-    results = client.psrcat(SERVER, AUTH, pulsar = 'J1935+1616')
-    for r in results.items():
-        print r
+
+    client.pulsar_create(SERVER, 
+                         AUTH, 
+                         name = 'J1111+1111', 
+                         ra = '19:35:47.8259', 
+                         dec = '+16:16:39.986')
+    
+
+    result = client.calibrator_create(SERVER,
+                                      AUTH,
+                                      observationid = 123456,
+                                      calibrator_type = 1) # Offringa
+
+            
+    # create a detection                  
+    client.detection_create(SERVER, 
+                            AUTH,
+                            observationid = 1111111111, 
+                            pulsar = 'J1111+1111',
+                            subband = 145,
+                            incoherent = False,
+                            observation_type = 1, # Contiguous
+                            calibrator = result['id'], # get the id of calibrator
+                            startcchan = 130, 
+                            stopcchan = 140, 
+                            flux = 80,
+                            width = 0.03,
+                            dm = 130)
+    
+    # You an find an existing calibrator based on a detection id
+    result = client.detection_find_calibrator(SERVER, 
+                                              AUTH,
+                                              detection_obsid = 1111111111)
+    print (result)
+    
+    # Change the DM
+    # Requires observationid, pulsar, subband and incoherent set to identify a unique detection
+    client.detection_update(SERVER,
+                            AUTH,
+                            observationid = 1111111111, 
+                            pulsar = 'J1111+1111',
+                            subband = 145,
+                            incoherent = False,
+                            dm = 120)
+    
+    # upload a pulsar file to a detection
+    client.pulsar_file_upload(SERVER,
+                            AUTH,
+                            observationid = 1111111111, 
+                            pulsar = 'J1111+1111',
+                            subband = 145,
+                            incoherent = False,
+                            filetype = 1, # Archive
+                            filepath='./filter.jpg')
+    
+    # download a file to a particular location
+    client.pulsar_file_download(SERVER,
+                                AUTH,
+                                filename='filter.jpg',
+                                outputpath='/tmp/')
+
 except requests.exceptions.RequestException as e:
     print e.response.text
-```
-
-## Example
-
-Create pulsar. 
-
-```python
-from mwa_pulsar_client import client
-
-SERVER = 'mwa-pawsey-volt01.pawsey.ivec.org'
-AUTH = ('mwapulsar', 'PASS') # Replace with real password
-
-client.pulsar_create(SERVER, AUTH, 
-                     name = 'J1935+1615', 
-                     ra = '19:35:47.8259', 
-                     dec = '+16:16:39.986') 
-```
-
-Create pulsar observation. 
-
-```python
-client.observation_create(SERVER, AUTH, 
-                          obsid = 1095506112, 
-                          pulsar = 'J1935+1615',
-                          subband = 145, 
-                          obstype = 1, # Contiguous
-                          startcchan = 130, 
-                          stopcchan = 140, 
-                          flux = 80,
-                          width = 0.03,
-                          dm = 130)
-```
-
-Upload a pulsar observation file. 
-
-```python
-client.pulsar_file_upload(SERVER, AUTH, 
-                          obsid = 1095506112, 
-                          pulsar = 'J1935+1615',
-                          subband = 145,
-                          filetype = 1, # Archive file
-                          filepath = '/tmp/test.ar')
-```
-
-List all the observations with a particular observation ID.
-
-```python
-observations = client.observation_get(SERVER, AUTH, obsid = 1095506112)
-for observation in observations:
-    print observation
-```
-
-Download file.
-
-```python
-client.pulsar_file_download(SERVER, AUTH, 'test.ar', '/tmp/downloads/')
-```
