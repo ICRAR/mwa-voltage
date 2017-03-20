@@ -13,7 +13,7 @@ def detection_find_calibrator(addr, auth, **kwargs):
         auth: tuple of username and password. 
         detection_obsid: observation id of a detection
     """
-    path = 'http://{0}/{1}/'.format(addr, 'detection_find_calibrator')
+    path = 'https://{0}/{1}/'.format(addr, 'detection_find_calibrator')
     r = requests.get(url=path,
                     auth=auth,
                     params=urllib.urlencode(kwargs))
@@ -28,7 +28,7 @@ def calibrator_list(addr, auth):
         addr: hostname or ip address of database server.
         auth: tuple of username and password. 
     """
-    path = 'http://{0}/{1}/'.format(addr, 'calibrator_list')
+    path = 'https://{0}/{1}/'.format(addr, 'calibrator_list')
     r = requests.get(url=path, auth=auth)
     r.raise_for_status()
     return r.json()
@@ -44,7 +44,7 @@ def calibrator_create(addr, auth, **kwargs):
         calibrator_type: id of calibrator type
         notes: any notes regarding calibrator
     """
-    path = 'http://{0}/{1}/'.format(addr, 'calibrator_create')
+    path = 'https://{0}/{1}/'.format(addr, 'calibrator_create')
     r = requests.post(url=path, auth=auth, data=kwargs)
     r.raise_for_status()
     return r.json()
@@ -57,7 +57,7 @@ def pulsar_list(addr, auth):
         addr: hostname or ip address of database server.
         auth: tuple of username and password. 
     """
-    path = 'http://{0}/{1}/'.format(addr, 'pulsar_list')
+    path = 'https://{0}/{1}/'.format(addr, 'pulsar_list')
     r = requests.get(url=path, auth=auth)
     r.raise_for_status()
     return r.json()
@@ -71,7 +71,7 @@ def pulsar_get(addr, auth, **kwargs):
         auth: tuple of username and password.
         name: name of pulsar.
     """
-    path = 'http://{0}/{1}/'.format(addr, 'pulsar_get')
+    path = 'https://{0}/{1}/'.format(addr, 'pulsar_get')
     r = requests.get(url=path,
                     auth=auth,
                     params=urllib.urlencode(kwargs))
@@ -91,7 +91,7 @@ def pulsar_create(addr, auth, **kwargs):
     Raises:
         Exception if pulsar already exists or there is an input error. 
     """
-    path = 'http://{0}/{1}/'.format(addr, 'pulsar_create')
+    path = 'https://{0}/{1}/'.format(addr, 'pulsar_create')
     r = requests.post(url=path, auth=auth, data=kwargs)
     r.raise_for_status()
     return r.json()
@@ -104,7 +104,7 @@ def detection_list(addr, auth):
         addr: hostname or ip address of database server.
         auth: tuple of username and password. 
     """
-    path = 'http://{0}/{1}/'.format(addr, 'detection_list')
+    path = 'https://{0}/{1}/'.format(addr, 'detection_list')
     r = requests.get(url=path, auth=auth)
     r.raise_for_status()
     return r.json()
@@ -118,7 +118,7 @@ def detection_get(addr, auth, **kwargs):
         auth: tuple of username and password.
         observationid: observation id.
     """
-    path = 'http://{0}/{1}/'.format(addr, 'detection_get')
+    path = 'https://{0}/{1}/'.format(addr, 'detection_get')
     r = requests.get(url=path,
                     auth=auth,
                     params=urllib.urlencode(kwargs))
@@ -153,7 +153,7 @@ def detection_update(addr, auth, **kwargs):
     Raises:
         Exception if detection already exists or there is an input error.
     """
-    path = 'http://{0}/{1}/'.format(addr, 'detection_update')
+    path = 'https://{0}/{1}/'.format(addr, 'detection_update')
     r = requests.post(url=path, auth=auth, data=kwargs)
     r.raise_for_status()
     return r.json()
@@ -186,7 +186,7 @@ def detection_create(addr, auth, **kwargs):
     Raises:
         Exception if detection already exists or there is an input error.
     """
-    path = 'http://{0}/{1}/'.format(addr, 'detection_create')
+    path = 'https://{0}/{1}/'.format(addr, 'detection_create')
     r = requests.post(url=path, auth=auth, data=kwargs)
     r.raise_for_status()
     return r.json()
@@ -205,7 +205,7 @@ def pulsar_file_upload(addr, auth, **kwargs):
         filetype: (1: Archive, 2: Timeseries, 3: Diagnostics, 4: Calibration Solution)
         filepath: full local path of the file to upload. 
     """
-    path = 'http://{0}/{1}/'.format(addr, 'pulsar_file_upload')
+    path = 'https://{0}/{1}/'.format(addr, 'pulsar_file_upload')
     filepath = kwargs.get('filepath', None)
     if not filepath:
         raise Exception('filepath not found')
@@ -232,7 +232,7 @@ def pulsar_file_download(addr, auth, filename, outputpath):
     Raises:
         Exception if there is a file error or file not found. 
     """
-    path = 'http://{0}/{1}/'.format(addr, 'pulsar_file_download')
+    path = 'https://{0}/{1}/'.format(addr, 'pulsar_file_download')
     params = {'filename': filename}
     r = requests.get(url=path,
                         auth=auth,
@@ -265,7 +265,7 @@ def psrcat(addr, auth, pulsar):
     Exception:
         pulsar not found or bad input.
     """
-    path = 'http://{0}/{1}/'.format(addr, 'psrcat')
+    path = 'https://{0}/{1}/'.format(addr, 'psrcat')
     payload = {'name': pulsar, 'format': 'json'}
     r = requests.get(url=path,
                                 auth=auth,
