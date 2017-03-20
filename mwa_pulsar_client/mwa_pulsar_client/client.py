@@ -16,7 +16,7 @@ def detection_find_calibrator(addr, auth, **kwargs):
     path = 'http://{0}/{1}/'.format(addr, 'detection_find_calibrator')
     r = requests.get(url=path,
                     auth=auth,
-                    params=urllib.urlencode(**kwargs))
+                    params=urllib.urlencode(kwargs))
     r.raise_for_status()
     return r.json()
 
@@ -30,6 +30,22 @@ def calibrator_list(addr, auth):
     """
     path = 'http://{0}/{1}/'.format(addr, 'calibrator_list')
     r = requests.get(url=path, auth=auth)
+    r.raise_for_status()
+    return r.json()
+
+def calibrator_create(addr, auth, **kwargs):
+    """
+    Create a new calibrator.
+    
+    Args:
+        addr: hostname or ip address of database server.
+        auth: tuple of username and password.
+        observationid: observation id of the calibrator.
+        calibrator_type: id of calibrator type
+        notes: any notes regarding calibrator
+    """
+    path = 'http://{0}/{1}/'.format(addr, 'calibrator_create')
+    r = requests.post(url=path, auth=auth, data=kwargs)
     r.raise_for_status()
     return r.json()
 
