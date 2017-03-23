@@ -41,7 +41,7 @@ def calibrator_get(addr, auth, **kwargs):
         addr: hostname or ip address of database server.
         auth: tuple of username and password.
         observationid: observation id of the calibrator.
-        caltype: id of calibrator type
+        caltype: id of calibrator type (check database for type id)
     """
     path = 'https://{0}/{1}/'.format(addr, 'calibrator_get')
     r = requests.get(url=path,
@@ -278,7 +278,7 @@ def calibrator_file_upload(addr, auth, **kwargs):
         addr: hostname or ip address of database server.
         auth: tuple of username and password.
         observationid: observation id.
-        caltype: Refer to Calibrator Type table
+        caltype: (check database for id)
         filepath: full local path of the file to upload. 
     """
     path = 'https://{0}/{1}/'.format(addr, 'calibrator_file_upload')
@@ -296,7 +296,7 @@ def calibrator_file_upload(addr, auth, **kwargs):
 
 def calibrator_file_download(addr, auth, filename, outputpath):
     """
-    Download a specific detection file. 
+    Download a specific calibration file. 
     
     Args:
         addr: hostname or ip address of database server.
