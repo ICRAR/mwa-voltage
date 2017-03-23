@@ -175,7 +175,7 @@ def detection_file_upload(addr, auth, **kwargs):
     Args:
         addr: hostname or ip address of database server.
         auth: tuple of username and password.
-        obsid: observation id.
+        observationid: observation id.
         pulsar: name of pulsar. 
         subband: subband of detection.
         incoherent: incoherent observation.
@@ -190,7 +190,7 @@ def detection_file_download(addr, auth, filename, outputpath):
     Args:
         addr: hostname or ip address of database server.
         auth: tuple of username and password.
-        obsid: observation id.
+        observationid: observation id.
         filename: name of the file recorded in the database. 
         out_path: local path where to place file.
     Returns:
