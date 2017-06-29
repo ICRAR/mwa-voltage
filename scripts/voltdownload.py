@@ -29,6 +29,8 @@ import urllib2
 import urllib
 import base64
 import time
+import datetime
+import calendar
 from optparse import OptionParser
 from multiprocessing import Queue
 from Queue import Empty
@@ -41,23 +43,32 @@ ERRORS = []
 COMPLETE = 0
 TOTAL_FILES = 0
 
+sec_const = 315964784
+
+def GPSNow():
+    return int(time.time()) - sec_const
+
+def UTCToGPS(year, month, day, hour, minu, sec) :
+    t = calendar.timegm((year, month, day, hour, minu, sec, -1, -1, 0))
+    return t - sec_const
+
 def file_error(err):
    global ERRORS
    with LOCK:
       ERRORS.append(err)
-      print err
+      print(err)
 
 def file_starting(filename):
    with LOCK:
-      print '%s [INFO] Downloading %s' % (time.strftime('%c'), filename)
+      print('%s [INFO] Downloading %s' % (time.strftime('%c'), filename))
 
 def file_complete(filename):
    global COMPLETE
    global TOTAL_FILES
    with LOCK:
       COMPLETE = COMPLETE + 1
-      print '%s [INFO] %s complete [%d of %d]' % (time.strftime('%c'), filename,
-                                                  COMPLETE, TOTAL_FILES)
+      print('%s [INFO] %s complete [%d of %d]' % (time.strftime('%c'), filename,
+                                                  COMPLETE, TOTAL_FILES))
 
 def split_raw_recombined(filename):
 
@@ -82,9 +93,13 @@ def split_raw_recombined(filename):
          chan = part[2]
          tm = int(part[3].split('.')[0])
 
-      return obsid, tm, chan
+      dtm = datetime.datetime.utcfromtimestamp(int(tm))
+      gps = UTCToGPS(dtm.year, dtm.month, dtm.day, dtm.hour, dtm.minute, dtm.second)
+      return obsid, gps, chan
 
    except Exception as e:
+      import traceback
+      traceback.print_exc()
       raise Exception('invalid voltage recombined product filename %s' % file)
 
 
@@ -166,6 +181,9 @@ def query_observation(obs, host, filetype, timefrom, duration):
             if filetype == 11 and ft == 11:
                obsid, second, vcs, part = split_raw_voltage(f)
                add = True
+            elif filetype == 12 and ft == 12:
+                obsid, second, chan = split_raw_recombined(f)
+                add = True
             elif filetype == 15 and ft == 15:
                obsid, second = split_ics(f)
                add = True
@@ -178,13 +196,15 @@ def query_observation(obs, host, filetype, timefrom, duration):
                   add = True
 
             if add and second >= timefrom and second <= (timefrom + duration):
-                  keymap[f] = size
+                keymap[f] = size
                   
       else:
          for f, v in files.iteritems():
             ft = v['filetype']
             size = v['size']
             if filetype == 11 and ft == 11:
+               keymap[f] = size
+            elif filetype == 12 and ft == 12:
                keymap[f] = size
             elif filetype == 15 and ft == 15:
                keymap[f] = size
@@ -291,46 +311,46 @@ def main():
    (options, args) = parser.parse_args()
    
    if options.ngashost == None:
-       print 'NGAS host not defined'
+       print('NGAS host not defined')
        sys.exit(-1)
    
    if options.obs == None:
-       print 'Observation ID is empty'
+       print('Observation ID is empty')
        sys.exit(-1)
    
    if options.filetype == None:
-       print 'File type not specified'
+       print('File type not specified')
        sys.exit(-1)
    
-   if options.timefrom == None:
-       print 'Time from not specified'
-       sys.exit(-1)
+   #if options.timefrom == None:
+   #    print('Time from not specified')
+    #   sys.exit(-1)
    
    if options.timefrom != None and options.duration != None:
        if options.duration < 0:
-          print 'Duration must not be negative'
+          print('Duration must not be negative')
           sys.exit(-1)
    
    numdownload = int(options.td)
    
    if numdownload <= 0 or numdownload > 12:
-       print 'Number of simultaneous downloads must be > 0 and <= 12'
+       print('Number of simultaneous downloads must be > 0 and <= 12')
        sys.exit(-1)
    
-   print '%s [INFO] Finding observation %s' % (time.strftime('%c'), options.obs)
+   print('%s [INFO] Finding observation %s' % (time.strftime('%c'), options.obs))
    
    fileresult = query_observation(options.obs, 'mwa-metadata01.pawsey.org.au',
                                    options.filetype, options.timefrom, options.duration)
    if len(fileresult) <= 0:
-       print '%s [INFO] No files found for observation %s and file type %s' % (time.strftime('%c'),
+       print('%s [INFO] No files found for observation %s and file type %s' % (time.strftime('%c'),
                                                                                options.obs,
-                                                                               int(options.filetype))
+                                                                               int(options.filetype)))
        sys.exit(1)
    
-   print '%s [INFO] Found %s files' % (time.strftime('%c'), str(len(fileresult)))
+   print('%s [INFO] Found %s files' % (time.strftime('%c'), str(len(fileresult))))
 
    if len(fileresult) > 12000:
-       print '%s [INFO] File limit exceeded 12000, please stagger your download' % (time.strftime('%c'))
+       print('%s [INFO] File limit exceeded 12000, please stagger your download' % (time.strftime('%c')))
        sys.exit(1)
    
    # advise that we want to prestage all the files
@@ -372,15 +392,15 @@ def main():
       while t.isAlive():
          t.join(timeout = 0.25)
                
-   print '%s [INFO] File Transfer Complete.' % (time.strftime('%c'))
+   print('%s [INFO] File Transfer Complete.' % (time.strftime('%c')))
    
    if ERRORS:
-       print '%s [INFO] File Transfer Error Summary:' % (time.strftime('%c'))
+       print('%s [INFO] File Transfer Error Summary:' % (time.strftime('%c')))
        for i in ERRORS:
-           print i
+           print(i)
        raise Exception()
    else:
-       print '%s [INFO] File Transfer Success.' % (time.strftime('%c'))
+       print('%s [INFO] File Transfer Success.' % (time.strftime('%c')))
 
 
 if __name__ == '__main__':
@@ -389,9 +409,9 @@ if __name__ == '__main__':
         os._exit(0)
 
     except KeyboardInterrupt as k:
-        print 'Interrupted, shutting down'
+        print('Interrupted, shutting down')
         os._exit(2)
 
     except Exception as e:
-        print e
+        print(e)
         os._exit(3)
