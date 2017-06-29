@@ -98,8 +98,6 @@ def split_raw_recombined(filename):
       return obsid, gps, chan
 
    except Exception as e:
-      import traceback
-      traceback.print_exc()
       raise Exception('invalid voltage recombined product filename %s' % file)
 
 
