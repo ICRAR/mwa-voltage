@@ -298,8 +298,8 @@ def main():
                        help='Time from (taken from filename)')
    parser.add_option('--duration', default = 0, type = 'int', dest='duration',
                        help='Duration (seconds)')
-   parser.add_option('--ngas',  default='fe4.pawsey.ivec.org:7790', action='store',
-                       dest='ngashost', help='NGAS server (default: fe4.pawsey.ivec.org:7790)')
+   parser.add_option('--ngas',  default='fe4.pawsey.org.au:7790', action='store',
+                       dest='ngashost', help='NGAS server (default: fe4.pawsey.org.au:7790)')
    parser.add_option('--dir', default= './', action='store', dest='out',
                        help='Output directory (default: ./')
    parser.add_option('--parallel', default='6', action='store', dest='td',
