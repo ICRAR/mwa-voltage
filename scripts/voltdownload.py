@@ -157,7 +157,7 @@ def query_observation(obs, host, filetype, timefrom, duration):
 
    response = None
    try:
-      url = 'http://%s/metadata/obs/?obs_id=%s' % (host, str(obs))
+      url = 'http://%s/metadata/obs/?obs_id=%s&nocache' % (host, str(obs))
       request = urllib2.Request(url)
       response = urllib2.urlopen(request)
 
