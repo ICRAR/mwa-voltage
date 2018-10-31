@@ -253,7 +253,7 @@ help(client.detection_create)
 ```python
 from mwa_pulsar_client import client
 
-SERVER = 'mwa-pawsey-volt01.pawsey.ivec.org'
+SERVER = 'https://mwa-pawsey-volt01.pawsey.ivec.org'
 AUTH = ('mwapulsar', 'PASS') # Replace with real password
 
 try:
