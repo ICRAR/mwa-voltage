@@ -20,6 +20,21 @@ def detection_find_calibrator(addr, auth, **kwargs):
     r.raise_for_status()
     return r.json()
 
+def calibration_file_by_observation_id(addr, auth, **kwargs):
+    """
+    Return a calibration and its file based on observation id.
+
+    Args:
+        addr: hostname or ip address of database server.
+        auth: tuple of username and password.
+    """
+    path = 'https://{0}/{1}/'.format(addr, 'calibration_file_by_observation_id')
+    r = requests.get(url=path,
+                    auth=auth,
+                    params=urllib.urlencode(kwargs))
+    r.raise_for_status()
+    return r.json()
+
 def calibrator_list(addr, auth):
     """
     Return a list of the all the calibrators in the database.
