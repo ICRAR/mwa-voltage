@@ -237,7 +237,7 @@ def detection_file_upload(addr, auth, **kwargs):
         pulsar: name of pulsar. 
         subband: subband of detection.
         coherent: coherent observation.
-        filetype: (1: Archive, 2: Timeseries, 3: Diagnostics, 4: Calibration Solution)
+        filetype: (1: Archive, 2: Timeseries, 3: Diagnostics, 4: Calibration Solution, 5: Bestprof)
         filepath: full local path of the file to upload. 
     """
     path = '{0}/{1}/'.format(addr, 'detection_file_upload')

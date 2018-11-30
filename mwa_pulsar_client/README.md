@@ -113,7 +113,7 @@ def detection_get(addr, auth, **kwargs):
 def detection_update(addr, auth, **kwargs):
     """
     Update an extising detection. 
-    observationid, pulsar and subband, incoherent form a unique set per detection. 
+    observationid, pulsar and subband, coherent form a unique set per detection. 
 
     Args:
         addr: hostname or ip address of database server.
@@ -121,7 +121,7 @@ def detection_update(addr, auth, **kwargs):
         observationid: observation id. 
         pulsar: name of pulsar (string). 
         subband: subband of detection.
-        incoherent: incoherent data set (True), coherent (False)
+        coherent: coherent data set (True), incoherent (False)
         observation_type: type of observation (1: Contiguous, 2: Picket Fence)
         calibrator: id of calibrator (or None).
         startcchan: start course channel (or None).
@@ -142,7 +142,7 @@ def detection_update(addr, auth, **kwargs):
 def detection_create(addr, auth, **kwargs):
     """
     Create a new detection. 
-    observationid, pulsar and subband, incoherent form a unique set per detection. 
+    observationid, pulsar and subband, coherent form a unique set per detection. 
 
     Args:
         addr: hostname or ip address of database server.
@@ -150,7 +150,7 @@ def detection_create(addr, auth, **kwargs):
         observationid: observation id. 
         pulsar: name of pulsar (string). 
         subband: subband of detection.
-        incoherent: incoherent data set (True), coherent (False)
+        coherent: coherent data set (True), incoherent (False)
         observation_type: type of observation (1: Contiguous, 2: Picket Fence)
         calibrator: id of calibrator (or None).
         startcchan: start course channel (or None).
@@ -178,8 +178,8 @@ def detection_file_upload(addr, auth, **kwargs):
         observationid: observation id.
         pulsar: name of pulsar. 
         subband: subband of detection.
-        incoherent: incoherent observation.
-        filetype: (1: Archive, 2: Timeseries, 3: Diagnostics, 4: Calibration Solution)
+        coherent: coherent observation.
+        filetype: (1: Archive, 2: Timeseries, 3: Diagnostics, 4: Calibration Solution, 5: Bestprof)
         filepath: full local path of the file to upload. 
     """
 
@@ -282,7 +282,7 @@ try:
                             observationid = 1111111111, 
                             pulsar = 'J1111+1111',
                             subband = 145,
-                            incoherent = False,
+                            coherent = True,
                             observation_type = 1, # Contiguous
                             calibrator = result['id'], # get the id of calibrator
                             startcchan = 130, 
@@ -299,13 +299,13 @@ try:
     print (result)
     
     # Change the DM
-    # Requires observationid, pulsar, subband and incoherent set to identify a unique detection
+    # Requires observationid, pulsar, subband and coherent set to identify a unique detection
     client.detection_update(SERVER,
                             AUTH,
                             observationid = 1111111111, 
                             pulsar = 'J1111+1111',
                             subband = 145,
-                            incoherent = False,
+                            coherent = True,
                             dm = 120)
     
     # upload a file associated to a detection
@@ -314,7 +314,7 @@ try:
                                 observationid = 1111111111, 
                                 pulsar = 'J1111+1111',
                                 subband = 145,
-                                incoherent = False,
+                                coherent = True,
                                 filetype = 1, # Archive
                                 filepath='./filter.jpg')
     
