@@ -161,7 +161,7 @@ def detection_get(addr, auth, **kwargs):
 def detection_update(addr, auth, **kwargs):
     """
     Update an extising detection. 
-    observationid, pulsar and subband, incoherent form a unique set per detection. 
+    observationid, pulsar and subband, coherent form a unique set per detection.
 
     Args:
         addr: hostname or ip address of database server.
@@ -169,7 +169,7 @@ def detection_update(addr, auth, **kwargs):
         observationid: observation id. 
         pulsar: name of pulsar (string). 
         subband: subband of detection.
-        incoherent: incoherent data set (True), coherent (False)
+        coherent: coherent data set (True), incoherent (False)
         observation_type: type of observation (1: Contiguous, 2: Picket Fence)
         calibrator: id of calibrator (or None).
         startcchan: start course channel (or None).
@@ -195,7 +195,7 @@ def detection_update(addr, auth, **kwargs):
 def detection_create(addr, auth, **kwargs):
     """
     Create a new detection. 
-    observationid, pulsar and subband, incoherent form a unique set per detection. 
+    observationid, pulsar and subband, coherent form a unique set per detection.
 
     Args:
         addr: hostname or ip address of database server.
@@ -203,7 +203,7 @@ def detection_create(addr, auth, **kwargs):
         observationid: observation id. 
         pulsar: name of pulsar (string). 
         subband: subband of detection.
-        incoherent: incoherent data set (True), coherent (False)
+        coherent: coherent data set (True), incoherent (False)
         observation_type: type of observation (1: Contiguous, 2: Picket Fence)
         calibrator: id of calibrator (or None).
         startcchan: start course channel (or None).
@@ -236,7 +236,7 @@ def detection_file_upload(addr, auth, **kwargs):
         observationid: observation id.
         pulsar: name of pulsar. 
         subband: subband of detection.
-        incoherent: incoherent observation.
+        coherent: coherent observation.
         filetype: (1: Archive, 2: Timeseries, 3: Diagnostics, 4: Calibration Solution)
         filepath: full local path of the file to upload. 
     """
