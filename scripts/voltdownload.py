@@ -25,15 +25,21 @@ import os
 import time
 import json
 import threading
-import urllib2
-import urllib
+import urllib.request
 import base64
 import time
 import datetime
 import calendar
 from optparse import OptionParser
-from multiprocessing import Queue
-from Queue import Empty
+from queue import Empty, Queue
+import logging
+
+# set up the logger for stand-alone execution
+logger = logging.getLogger(__name__)
+ch = logging.StreamHandler()
+formatter = logging.Formatter('%(asctime)s  %(name)s  %(lineno)-4d  %(levelname)-7s :: %(message)s')
+ch.setFormatter(formatter)
+logger.addHandler(ch)
 
 username = 'ngas'
 password = 'ngas'
@@ -56,18 +62,18 @@ def file_error(err):
    global ERRORS
    with LOCK:
       ERRORS.append(err)
-      print(err)
+      logging.error(err)
 
 def file_starting(filename):
    with LOCK:
-      print('%s [INFO] Downloading %s' % (time.strftime('%c'), filename))
+      logging.info('Downloading %s' % (filename))
 
 def file_complete(filename):
    global COMPLETE
    global TOTAL_FILES
    with LOCK:
       COMPLETE = COMPLETE + 1
-      print('%s [INFO] %s complete [%d of %d]' % (time.strftime('%c'), filename,
+      logging.info('%s complete [%d of %d]' % (filename,
                                                   COMPLETE, TOTAL_FILES))
 
 def split_raw_recombined(filename):
@@ -156,11 +162,8 @@ def query_observation(obs, host, filetype, timefrom, duration):
       processRange = True
 
    response = None
-   try:
-      url = 'http://%s/metadata/obs/?obs_id=%s&nocache' % (host, str(obs))
-      request = urllib2.Request(url)
-      response = urllib2.urlopen(request)
-
+   url = 'http://%s/metadata/obs/?obs_id=%s&nocache' % (host, str(obs))
+   with urllib.request.urlopen(url) as response:
       resultbuffer = []
       while True:
         result = response.read(32768)
@@ -169,10 +172,10 @@ def query_observation(obs, host, filetype, timefrom, duration):
         resultbuffer.append(result)
 
       keymap = {}
-      files = json.loads(''.join(resultbuffer))['files']
+      files = json.loads(b''.join(resultbuffer))['files']
       if processRange:
          second = None
-         for f, v in files.iteritems():
+         for f, v in files.items():
             ft = v['filetype']
             size = v['size']
             add = False
@@ -197,7 +200,7 @@ def query_observation(obs, host, filetype, timefrom, duration):
                 keymap[f] = size
                   
       else:
-         for f, v in files.iteritems():
+         for f, v in files.items():
             ft = v['filetype']
             size = v['size']
             if filetype == 11 and ft == 11:
@@ -211,9 +214,6 @@ def query_observation(obs, host, filetype, timefrom, duration):
 
       return keymap
 
-   finally:
-      if response:
-         response.close()
 
 
 def check_complete(filename, size, dir):
@@ -243,18 +243,18 @@ def download_worker(url, filename, size, out, bufsize, prestage):
     try:
         file_starting(filename)
 
-        request = urllib2.Request(url)
+        request = urllib.request.Request(url)
         base64string = base64.encodestring('%s:%s' % (username, password)).replace('\n', '')
         request.add_header('Authorization', 'Basic %s' % base64string)
         request.add_header('prestagefilelist', prestage)
 
-        u = urllib2.urlopen(request)
+        u = urllib.request.urlopen(request)
         u.fp.bufsize = bufsize
 
         file_size = int(u.headers['Content-Length'])
         file_size_dl = 0
 
-        with open(out + filename, 'wb') as f:
+        with open(out + filename, 'wb').write(bytes_) as f:
            while True:
                buff = u.read(bufsize)
                if not buff:
@@ -268,17 +268,17 @@ def download_worker(url, filename, size, out, bufsize, prestage):
 
         file_complete(filename)
 
-    except urllib2.HTTPError as e:
-        file_error('%s [ERROR] %s %s' % (time.strftime('%c'), filename, str(e.read()) ))
+    except urllib.error.HTTPError as e:
+        file_error('%s %s' % (filename, str(e.read()) ))
 
-    except urllib2.URLError as urlerror:
+    except urllib.error.URLError as urlerror:
         if hasattr(urlerror, 'reason'):
-            file_error('%s [ERROR] %s %s' % (time.strftime('%c'), filename, str(urlerror.reason) ))
+            file_error('%s %s' % (filename, str(urlerror.reason) ))
         else:
-            file_error('%s [ERROR] %s %s' % (time.strftime('%c'), filename, str(urlerror) ))
+            file_error('%s %s' % (filename, str(urlerror) ))
 
     except Exception as exp:
-        file_error('%s [ERROR] %s %s' % (time.strftime('%c'), filename, str(exp) ))
+        file_error('%s %s' % (filename, str(exp) ))
 
     finally:
         if u:
@@ -335,25 +335,24 @@ def main():
        print('Number of simultaneous downloads must be > 0 and <= 12')
        sys.exit(-1)
    
-   print('%s [INFO] Finding observation %s' % (time.strftime('%c'), options.obs))
+   logger.info('Finding observation %s' % options.obs)
    
    fileresult = query_observation(options.obs, 'mwa-metadata01.pawsey.org.au',
                                    options.filetype, options.timefrom, options.duration)
    if len(fileresult) <= 0:
-       print('%s [INFO] No files found for observation %s and file type %s' % (time.strftime('%c'),
-                                                                               options.obs,
-                                                                               int(options.filetype)))
+       logger.info('No files found for observation %s and file type %s' % options.obs,
+                                                                          int(options.filetype))
        sys.exit(1)
    
    print('%s [INFO] Found %s files' % (time.strftime('%c'), str(len(fileresult))))
 
    if len(fileresult) > 12000:
-       print('%s [INFO] File limit exceeded 12000, please stagger your download' % (time.strftime('%c')))
+       logger.error('File limit exceeded 12000, please stagger your download')
        sys.exit(1)
    
    # advise that we want to prestage all the files
    filelist = []
-   for key, value in fileresult.iteritems():
+   for key, value in fileresult.items():
       filelist.append(key)
    
    prestage_files = json.dumps(filelist)
@@ -375,12 +374,13 @@ def main():
    for filename, filesize in sorted(fileresult.items()):
        url = 'http://%s/RETRIEVE?file_id=%s' % (options.ngashost, filename)
        if not check_complete(filename, int(filesize), dir):
-           download_queue.put((url, filename, filesize, dir, bufsize, prestage_files))
+           download_queue.put((url, filename, filesize, dir,
+                               bufsize, prestage_files))
            continue
        file_complete(filename)
    
    threads = []
-   for t in xrange(numdownload):
+   for t in range(numdownload):
       t = threading.Thread(target = download_queue_thread, args = (download_queue,))
       t.setDaemon(True)
       threads.append(t)
@@ -390,15 +390,15 @@ def main():
       while t.isAlive():
          t.join(timeout = 0.25)
                
-   print('%s [INFO] File Transfer Complete.' % (time.strftime('%c')))
+   logger.info('File Transfer Complete.')
    
    if ERRORS:
-       print('%s [INFO] File Transfer Error Summary:' % (time.strftime('%c')))
+       logger.error('File Transfer Error Summary:')
        for i in ERRORS:
-           print(i)
+           logger.error(i)
        raise Exception()
    else:
-       print('%s [INFO] File Transfer Success.' % (time.strftime('%c')))
+       logger.info('File Transfer Success.')
 
 
 if __name__ == '__main__':
