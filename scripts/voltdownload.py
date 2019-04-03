@@ -35,11 +35,13 @@ from queue import Empty, Queue
 import logging
 
 # set up the logger for stand-alone execution
+logging.basicConfig(format='%(asctime)s l %(lineno)-4d [%(levelname)s] :: %(message)s',
+                    datefmt='%a %b %d %H:%M:%S', level=logging.INFO)
 logger = logging.getLogger(__name__)
-ch = logging.StreamHandler()
-formatter = logging.Formatter('%(asctime)s  %(name)s  %(lineno)-4d  %(levelname)-7s :: %(message)s')
-ch.setFormatter(formatter)
-logger.addHandler(ch)
+#ch = logging.StreamHandler()
+#formatter = logging.Formatter('%(asctime)s  %(name)s  %(lineno)-4d  %(levelname)-7s :: %(message)s')
+#ch.setFormatter(formatter)
+#logger.addHandler(ch)
 
 username = 'ngas'
 password = 'ngas'
@@ -244,7 +246,7 @@ def download_worker(url, filename, size, out, bufsize, prestage):
         file_starting(filename)
 
         request = urllib.request.Request(url)
-        base64string = base64.encodestring('%s:%s' % (username, password)).replace('\n', '')
+        base64string = base64.encodestring(('%s:%s' % (username,password)).encode()).decode().replace('\n', '')
         request.add_header('Authorization', 'Basic %s' % base64string)
         request.add_header('prestagefilelist', prestage)
 
@@ -344,7 +346,7 @@ def main():
                                                                           int(options.filetype))
        sys.exit(1)
    
-   print('%s [INFO] Found %s files' % (time.strftime('%c'), str(len(fileresult))))
+   logger.info('Found %s files' % (str(len(fileresult))))
 
    if len(fileresult) > 12000:
        logger.error('File limit exceeded 12000, please stagger your download')
