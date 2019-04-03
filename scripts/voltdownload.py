@@ -174,7 +174,7 @@ def query_observation(obs, host, filetype, timefrom, duration):
         resultbuffer.append(result)
 
       keymap = {}
-      files = json.loads(b''.join(resultbuffer))['files']
+      files = json.loads(b''.join(resultbuffer).decode('utf-8'))['files']
       if processRange:
          second = None
          for f, v in files.items():
@@ -256,7 +256,7 @@ def download_worker(url, filename, size, out, bufsize, prestage):
         file_size = int(u.headers['Content-Length'])
         file_size_dl = 0
 
-        with open(out + filename, 'wb').write(bytes_) as f:
+        with open(out + filename, 'wb') as f:
            while True:
                buff = u.read(bufsize)
                if not buff:
