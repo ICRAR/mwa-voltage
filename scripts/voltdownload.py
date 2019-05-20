@@ -264,7 +264,7 @@ def download_worker(url, filename, size, out, bufsize, prestage):
                file_size_dl += len(buff)
 
         if file_size_dl != file_size:
-          raise Exception('size mismatch %s %s' % str(file_size), str(file_size_dl))
+          raise Exception('size mismatch %s %s' % (str(file_size), str(file_size_dl)))
 
         file_complete(filename)
 
@@ -337,7 +337,7 @@ def main():
    
    print('%s [INFO] Finding observation %s' % (time.strftime('%c'), options.obs))
    
-   fileresult = query_observation(options.obs, 'mwa-metadata01.pawsey.org.au',
+   fileresult = query_observation(options.obs, 'ws.mwatelescope.org',
                                    options.filetype, options.timefrom, options.duration)
    if len(fileresult) <= 0:
        print('%s [INFO] No files found for observation %s and file type %s' % (time.strftime('%c'),
