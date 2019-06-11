@@ -246,7 +246,7 @@ def detection_file_upload(addr, auth, **kwargs):
         raise Exception('filepath not found')
     files = {'path': open(filepath, 'rb')}
     new_kwargs = {}
-    for k, v in kwargs.iteritems():
+    for k, v in kwargs.items():
         new_kwargs[k] = str(v)
     r = requests.post(url=path, auth=auth, files=files, headers=new_kwargs)
     r.raise_for_status()
@@ -305,7 +305,7 @@ def calibrator_file_upload(addr, auth, **kwargs):
         raise Exception('filepath not found')
     files = {'path': open(filepath, 'rb')}
     new_kwargs = {}
-    for k, v in kwargs.iteritems():
+    for k, v in kwargs.items():
         new_kwargs[k] = str(v)
     r = requests.post(url=path, auth=auth, files=files, headers=new_kwargs)
     r.raise_for_status()
