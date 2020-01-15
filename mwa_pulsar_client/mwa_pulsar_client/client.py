@@ -1,6 +1,6 @@
 # -*- coding: utf8 -*-
 import os
-import urllib
+import urllib.parse
 import requests
 
 
@@ -16,7 +16,7 @@ def detection_find_calibrator(addr, auth, **kwargs):
     path = '{0}/{1}/'.format(addr, 'detection_find_calibrator')
     r = requests.get(url=path,
                     auth=auth,
-                    params=urllib.urlencode(kwargs))
+                    params=urllib.parse.urlencode(kwargs))
     r.raise_for_status()
     return r.json()
 
@@ -32,7 +32,7 @@ def calibration_file_by_observation_id(addr, auth, **kwargs):
     path = '{0}/{1}/'.format(addr, 'calibration_file_by_observation_id')
     r = requests.get(url=path,
                     auth=auth,
-                    params=urllib.urlencode(kwargs))
+                    params=urllib.parse.urlencode(kwargs))
     r.raise_for_status()
     return r.json()
 
@@ -62,7 +62,7 @@ def calibrator_get(addr, auth, **kwargs):
     path = '{0}/{1}/'.format(addr, 'calibrator_get')
     r = requests.get(url=path,
                      auth=auth,
-                     params=urllib.urlencode(kwargs))
+                     params=urllib.parse.urlencode(kwargs))
     r.raise_for_status()
     return r.json()
 
@@ -107,7 +107,7 @@ def pulsar_get(addr, auth, **kwargs):
     path = '{0}/{1}/'.format(addr, 'pulsar_get')
     r = requests.get(url=path,
                     auth=auth,
-                    params=urllib.urlencode(kwargs))
+                    params=urllib.parse.urlencode(kwargs))
     r.raise_for_status()
     return r.json()
 
@@ -154,7 +154,7 @@ def detection_get(addr, auth, **kwargs):
     path = '{0}/{1}/'.format(addr, 'detection_get')
     r = requests.get(url=path,
                     auth=auth,
-                    params=urllib.urlencode(kwargs))
+                    params=urllib.parse.urlencode(kwargs))
     r.raise_for_status()
     return r.json()
 
@@ -246,7 +246,7 @@ def detection_file_upload(addr, auth, **kwargs):
         raise Exception('filepath not found')
     files = {'path': open(filepath, 'rb')}
     new_kwargs = {}
-    for k, v in kwargs.iteritems():
+    for k, v in kwargs.items():
         new_kwargs[k] = str(v)
     r = requests.post(url=path, auth=auth, files=files, headers=new_kwargs)
     r.raise_for_status()
@@ -270,7 +270,7 @@ def detection_file_download(addr, auth, filename, outputpath):
     params = {'filename': filename}
     r = requests.get(url=path,
                     auth=auth,
-                    params=urllib.urlencode(params),
+                    params=urllib.parse.urlencode(params),
                     stream=True)
     r.raise_for_status()
 
@@ -305,7 +305,7 @@ def calibrator_file_upload(addr, auth, **kwargs):
         raise Exception('filepath not found')
     files = {'path': open(filepath, 'rb')}
     new_kwargs = {}
-    for k, v in kwargs.iteritems():
+    for k, v in kwargs.items():
         new_kwargs[k] = str(v)
     r = requests.post(url=path, auth=auth, files=files, headers=new_kwargs)
     r.raise_for_status()
@@ -330,7 +330,7 @@ def calibrator_file_download(addr, auth, filename, outputpath):
     params = {'filename': filename}
     r = requests.get(url=path,
                     auth=auth,
-                    params=urllib.urlencode(params),
+                    params=urllib.parse.urlencode(params),
                     stream=True)
     r.raise_for_status()
 
@@ -362,6 +362,6 @@ def psrcat(addr, auth, pulsar):
     payload = {'name': pulsar, 'format': 'json'}
     r = requests.get(url=path,
                     auth=auth,
-                    params=urllib.urlencode(payload))
+                    params=urllib.parse.urlencode(payload))
     r.raise_for_status()
     return r.json()
