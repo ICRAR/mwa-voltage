@@ -2,7 +2,7 @@
 Tools for processing MWA voltage data
 
 ## scripts/voltdownload.py
-This (python 2.7) tool is used to download voltage data products from the MWA archive.
+This (python 3.6) tool is used to download voltage data products from the MWA archive.
 
 ```
 Usage: voltdownload.py [options]
@@ -22,3 +22,5 @@ Options:
 Example:
 python voltdownload.py --obs=1165416072 --type=16 --from=1165416072 --duration=1150 --dir=/tmp/
 ```
+
+README.md for recombine and mwa-client are found in their directories.
