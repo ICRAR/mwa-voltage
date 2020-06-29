@@ -43,14 +43,14 @@ logger = logging.getLogger(__name__)
 #ch.setFormatter(formatter)
 #logger.addHandler(ch)
 
-if 'MWAVOLT_USER' in os.environ and 'MWAVOLT_PASS' in os.environ and 'MWAVOLT_NGAS' in os.environ:
+if 'MWAVOLT_USER' in os.environ and 'MWAVOLT_PASS' in os.environ and 'MWAVOLT_SERVER_URL' in os.environ:
     username = os.environ['MWAVOLT_USER']
     password = os.environ['MWAVOLT_PASS']
-    NGAS = os.environ['MWAVOLT_NGAS']
+    server_url = os.environ['MWAVOLT_SERVER_URL']
 else:
     username = None
     password = None
-    NGAS = None
+    server_url = None
     logger.warning("The enviromental variables MWAVOLT_USER, MWAVOLT_PASS and MWAVOLT_NGAS are not set."\
                    "Downloads will not be possible")
 
@@ -309,7 +309,7 @@ def main():
                        help='Time from (taken from filename)')
    parser.add_option('--duration', default = 0, type = 'int', dest='duration',
                        help='Duration (seconds)')
-   parser.add_option('--ngas',  default=NGAS, action='store',
+   parser.add_option('--ngas',  default=server_url, action='store',
                        dest='ngashost', help='NGAS server (default: %default)')
    parser.add_option('--dir', default= './', action='store', dest='out',
                        help='Output directory (default: ./')
