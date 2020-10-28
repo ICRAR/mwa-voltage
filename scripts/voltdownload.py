@@ -166,64 +166,86 @@ def split_combined(filename):
       raise Exception('invalid combined filename %s' % file)
 
 
+def getmeta(servicetype='metadata', service='obs', params=None):
+    """
+    Function to call a JSON web service and return a dictionary:
+    Given a JSON web service ('obs', find, or 'con') and a set of parameters as
+    a Python dictionary, return a Python dictionary xcontaining the result.
+    Taken verbatim from http://mwa-lfd.haystack.mit.edu/twiki/bin/view/Main/MetaDataWeb
+    """
+    import urllib.request
+    import json
+
+    # Append the service name to this base URL, eg 'con', 'obs', etc.
+    BASEURL = 'http://ws.mwatelescope.org/'
+
+
+    if params:
+        # Turn the dictionary into a string with encoded 'name=value' pairs
+        data = urllib.parse.urlencode(params)
+    else:
+        data = ''
+
+    try:
+        result = json.load(urllib.request.urlopen(BASEURL + servicetype + '/' + service + '?' + data))
+    except urllib.error.HTTPError as err:
+        logger.error("HTTP error from server: code=%d, response:\n %s" % (err.code, err.read()))
+        return
+    except urllib.error.URLError as err:
+        logger.error("URL or network error: %s" % err.reason)
+        return
+
+    return result
+
+
 def query_observation(obs, host, filetype, timefrom, duration):
 
    processRange = False
    if timefrom != None and duration != None:
       processRange = True
 
-   response = None
-   url = 'http://%s/metadata/obs/?obs_id=%s&nocache' % (host, str(obs))
-   with urllib.request.urlopen(url) as response:
-      resultbuffer = []
-      while True:
-        result = response.read(32768)
-        if not result:
-          break
-        resultbuffer.append(result)
-
-      keymap = {}
-      files = json.loads(b''.join(resultbuffer).decode('utf-8'))['files']
-      if processRange:
-         second = None
-         for f, v in files.items():
-            ft = v['filetype']
-            size = v['size']
-            add = False
-            if filetype == 11 and ft == 11:
-               obsid, second, vcs, part = split_raw_voltage(f)
+   files = getmeta(service='data_files', params={'obs_id':obs, 'nocache':1, 'mintime':timefrom, 'maxtime':timefrom + duration + 1})
+   keymap = {}
+   if processRange:
+      second = None
+      for f, v in files.items():
+         ft = v['filetype']
+         size = v['size']
+         add = False
+         if filetype == 11 and ft == 11:
+            obsid, second, vcs, part = split_raw_voltage(f)
+            add = True
+         elif filetype == 12 and ft == 12:
+               obsid, second, chan = split_raw_recombined(f)
                add = True
-            elif filetype == 12 and ft == 12:
-                obsid, second, chan = split_raw_recombined(f)
-                add = True
-            elif filetype == 15 and ft == 15:
+         elif filetype == 15 and ft == 15:
+            obsid, second = split_ics(f)
+            add = True
+         elif filetype == 16:
+            if ft == 16:
+               obsid, second = split_combined(f)
+               add = True
+            elif ft == 15:
                obsid, second = split_ics(f)
                add = True
-            elif filetype == 16:
-               if ft == 16:
-                  obsid, second = split_combined(f)
-                  add = True
-               elif ft == 15:
-                  obsid, second = split_ics(f)
-                  add = True
 
-            if add and second >= timefrom and second <= (timefrom + duration):
-                keymap[f] = size
-                  
-      else:
-         for f, v in files.items():
-            ft = v['filetype']
-            size = v['size']
-            if filetype == 11 and ft == 11:
-               keymap[f] = size
-            elif filetype == 12 and ft == 12:
-               keymap[f] = size
-            elif filetype == 15 and ft == 15:
-               keymap[f] = size
-            elif filetype == 16 and (ft == 15 or ft == 16):
+         if add and second >= timefrom and second <= (timefrom + duration):
                keymap[f] = size
 
-      return keymap
+   else:
+      for f, v in files.items():
+         ft = v['filetype']
+         size = v['size']
+         if filetype == 11 and ft == 11:
+            keymap[f] = size
+         elif filetype == 12 and ft == 12:
+            keymap[f] = size
+         elif filetype == 15 and ft == 15:
+            keymap[f] = size
+         elif filetype == 16 and (ft == 15 or ft == 16):
+            keymap[f] = size
+
+   return keymap
 
 
 
@@ -349,7 +371,7 @@ def main():
    logger.info('Finding observation %s' % options.obs)
    
    fileresult = query_observation(options.obs, 'ws.mwatelescope.org',
-                                   options.filetype, options.timefrom, options.duration)
+                                  options.filetype, options.timefrom, options.duration)
    if len(fileresult) <= 0:
        logger.info('No files found for observation %s and file type %s' % options.obs,
                                                                           int(options.filetype))
