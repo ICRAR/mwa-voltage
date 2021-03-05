@@ -212,6 +212,8 @@ def query_observation(obs, host, filetype, timefrom, duration):
          ft = v['filetype']
          size = v['size']
          add = False
+         deleted = v['deleted']
+         remote_archived = v["remote_archived"]
          if filetype == 11 and ft == 11:
             obsid, second, vcs, part = split_raw_voltage(f)
             add = True
@@ -229,7 +231,7 @@ def query_observation(obs, host, filetype, timefrom, duration):
                obsid, second = split_ics(f)
                add = True
 
-         if add and second >= timefrom and second <= (timefrom + duration):
+         if add and remote_archived and not deleted:
                keymap[f] = size
 
    else:
